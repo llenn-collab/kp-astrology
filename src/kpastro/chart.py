@@ -25,6 +25,7 @@ from .significators import (
     ruling_planets,
 )
 from .vedic import format_longitude, point_info
+from .deep_dasha import deep_current_periods
 
 
 @dataclass(frozen=True)
