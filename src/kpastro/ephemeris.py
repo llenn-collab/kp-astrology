@@ -181,11 +181,10 @@ class SwissEphemeris:
         jd_ut = res[-1] if len(res) >= 2 else res[0]
         return jd_ut
 
-    def ayanamsa(self, jd_ut: float) -> float:
-        """Ayanamsa in degrees at the given Julian date (UT)."""
-        self._set_sid_mode()
-        # return float(swe.get_ayanamsa_ut(jd_ut))
-        return 24.14  # Hardcoded 24°08'24" (KP New) for testing
+def ayanamsa(self, jd_ut: float) -> float:
+    """Ayanamsa in degrees at the given Julian date (UT)."""
+    self._set_sid_mode()
+    return float(swe.get_ayanamsa_ut(jd_ut))
 
     def _calc(self, jd_ut: float, body: int, with_speed: bool = True):
         flags = swe.FLG_SWIEPH | (swe.FLG_SPEED if with_speed else 0)
