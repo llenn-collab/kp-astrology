@@ -184,17 +184,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = p.add_subparsers(dest="command", required=True)
-    p.add_argument(
-    "--json",
-    action="store_true",
-    help="emit KP Stellar-compatible JSON",
-    )
-    p.add_argument(
-    "--dasha-depth",
-    type=int,
-    default=5,
-    help="Vimshottari depth: 3=MD/AD/PD, 4=+Sookshma, 5=+Prana",
-    )
+
 
     def add_common(sp: argparse.ArgumentParser, with_number: bool = False) -> None:
         sp.add_argument("--date", default=DateType.today().isoformat(), type=_date_arg, help="YYYY-MM-DD (default today)")
@@ -205,8 +195,20 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("--place", default="", help="place label")
         sp.add_argument("--ayanamsa", choices=("lahiri", "kp", "kp_old"), default="lahiri")
         sp.add_argument("--node", choices=("mean", "true"), default="mean")
+        sp.add_argument(
+        "--json",
+        action="store_true",
+        help="emit KP Stellar-compatible JSON",
+        )
+        sp.add_argument(
+        "--dasha-depth",
+        type=int,
+        default=5,
+        help="Vimshottari depth: 3=MD/AD/PD, 4=+Sookshma, 5=+Prana",
+        )
         if with_number:
             sp.add_argument("--number", type=_horary_number_arg, required=True, help=f"KP horary number 1-{MAX_HORARY_NUMBER}")
+            
 
     sp = sub.add_parser("natal", help="complete KP birth chart")
     add_common(sp)
