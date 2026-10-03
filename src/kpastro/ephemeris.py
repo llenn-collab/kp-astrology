@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import os
 import threading
+import math
 import urllib.request
 from datetime import datetime
 from pathlib import Path
@@ -107,6 +108,17 @@ def download_ephemeris(target_dir: Optional[Path | str] = None) -> list[Path]:
         saved.append(dest)
     return saved
 
+_WGS84_FLATTENING = 1.0 / 298.257223563
+
+def _geocentric_latitude(lat_deg: float) -> float:
+    """Convert WGS84 geodetic latitude to geocentric latitude.
+
+    Some astrology engines use geocentric latitude for house cusp
+    calculations even though the user sees geodetic coordinates.
+    """
+    phi = math.radians(lat_deg)
+    factor = (1.0 - _WGS84_FLATTENING) ** 2
+    return math.degrees(math.atan(factor * math.tan(phi)))
 
 class SwissEphemeris:
     """Thin, safe wrapper around the (global-state) Swiss Ephemeris engine."""
@@ -187,7 +199,13 @@ class SwissEphemeris:
         return float(swe.get_ayanamsa_ut(jd_ut))
 
     def _calc(self, jd_ut: float, body: int, with_speed: bool = True):
-        flags = swe.FLG_SWIEPH | (swe.FLG_SPEED if with_speed else 0)
+        flags = (
+            swe.FLG_SWIEPH
+            | getattr(swe, "FLG_TRUEPOS", 0)
+            | getattr(swe, "FLG_NONUT", 0)
+            | (swe.FLG_SPEED if with_speed else 0)
+        )
+
         arr, retflag = swe.calc_ut(jd_ut, body, flags)[:2]
         return arr, retflag
 
@@ -251,16 +269,24 @@ class SwissEphemeris:
 
         Returns ``(cusps, asc, mc, armc)`` where ``cusps`` is a 12-element
         list and every angle is sidereal within [0, 360).
+
+        For KP Stellar parity, use geocentric latitude for house cusps.
         """
-        cusps_t, ascmc = swe.houses_ex(jd_ut, latitude, longitude, b"P")
+        house_lat = _geocentric_latitude(latitude)
+
+        cusps_t, ascmc = swe.houses_ex(jd_ut, house_lat, longitude, b"P")
+
         # pyswisseph returns 12 entries; the pysweph fork returns 13 with an
-        # empty slot 0.  Normalise to a 12-element list either way.
+        # empty slot 0. Normalise to a 12-element list either way.
         cusps_list = list(cusps_t[1:13] if len(cusps_t) == 13 else cusps_t)
+
         ayan = self.ayanamsa(jd_ut)
+
         cusps = [normalize_longitude(c - ayan) for c in cusps_list]
         asc = normalize_longitude(ascmc[0] - ayan)
         mc = normalize_longitude(ascmc[1] - ayan)
         armc = normalize_longitude(ascmc[2] - ayan)
+
         return cusps, asc, mc, armc
 
 
