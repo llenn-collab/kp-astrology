@@ -1,6 +1,7 @@
 """A complete KP chart: compute, then render as professional text tables."""
-import json
+
 from __future__ import annotations
+import json
 
 from dataclasses import dataclass, field
 from datetime import date as DateType, datetime, timedelta, time as TimeType
