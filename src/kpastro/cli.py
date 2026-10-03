@@ -12,6 +12,7 @@ download-ephemeris   fetch Swiss Ephemeris data files for full precision
 
 from __future__ import annotations
 
+
 import argparse
 import sys
 from datetime import date as DateType, time as TimeType
@@ -70,7 +71,11 @@ def cmd_natal(args: argparse.Namespace) -> int:
         place=args.place,
     )
     chart = compute_chart(birth, ayanamsa=args.ayanamsa, node=args.node)
-    print(render_chart(chart))
+    depth = getattr(args, "dasha_depth", 5)
+    if getattr(args, "json", False):
+        print(render_chart_json(chart, dasha_depth=depth))
+    else:
+        print(render_chart(chart, dasha_depth=depth))
     return 0
 
 
@@ -179,6 +184,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = p.add_subparsers(dest="command", required=True)
+    p.add_argument(
+    "--json",
+    action="store_true",
+    help="emit KP Stellar-compatible JSON",
+    )
+    p.add_argument(
+    "--dasha-depth",
+    type=int,
+    default=5,
+    help="Vimshottari depth: 3=MD/AD/PD, 4=+Sookshma, 5=+Prana",
+    )
 
     def add_common(sp: argparse.ArgumentParser, with_number: bool = False) -> None:
         sp.add_argument("--date", default=DateType.today().isoformat(), type=_date_arg, help="YYYY-MM-DD (default today)")
