@@ -18,7 +18,7 @@ import sys
 from datetime import date as DateType, time as TimeType
 
 from . import __version__
-from .chart import BirthInfo, compute_chart, render_chart
+from .chart import BirthInfo, compute_chart, render_chart, render_chart_json
 from .dasha import mahadasha_timeline
 from .ephemeris import SwissEphemeris, download_ephemeris
 from .horary import MAX_HORARY_NUMBER, ascendant_from_kp_number
