@@ -264,23 +264,38 @@ def render_ruling(chart: Chart) -> str:
     return "\n".join(f"  {rp.planet:<10} {rp.source}" for rp in chart.ruling)
 
 
-def render_dasha(chart: Chart) -> str:
-    epoch = chart.birth.utc_datetime()
-    lines = [" Mahadasha timeline (1 yr = 365.25 d):"]
-    lines.append("-" * 46)
-    lines.append(f" {'Lord':<10} {'Start':>10} {'End':>10} {'Days':>9}")
-    for md in chart.mahadashas:
-        start, end = md.as_datetimes(epoch)
-        lines.append(
-            f" {md.lord:<10} {start:%Y-%m-%d} {end:%Y-%m-%d} {md.duration_days:>8.1f}"
-        )
-    cur = chart.current
-    lines.append("")
+def render_deep_dasha(chart: Chart, depth: int = 5) -> str:
+    """Render Vimshottari dasha to the requested depth."""
+    moon_lon = chart.planet_lon["Moon"]
+    at_utc = chart.birth.utc_datetime()
+    periods = deep_current_periods(moon_lon, at_utc, depth=depth)
+
+    lines = [
+        f" VIMSHOTTARI DASHA - DEEP ({depth} LEVELS)"
+    ]
+    lines.append("-" * 105)
     lines.append(
-        f" At birth: MD {cur[1].lord} ({_days(cur[1])}), "
-        f"AD {cur[2].lord} ({_days(cur[2])}), "
-        f"PD {cur[3].lord} ({_days(cur[3])})"
+        f" {'Level':<18} {'Lord':<8} {'Start UT':>19} {'End UT':>19} "
+        f"{'Duration':>12} {'Balance':>12}"
     )
+    lines.append("-" * 105)
+
+    for p in periods:
+        lines.append(
+            f" {p.name:<18} {p.lord:<8} "
+            f"{p.start:%Y-%m-%d %H:%M:%S} {p.end:%Y-%m-%d %H:%M:%S} "
+            f"{format_days(p.duration_days):>12} "
+            f"{format_days(p.balance_days):>12}"
+        )
+
+    stack = " / ".join(p.lord for p in periods)
+    lines.append("")
+    lines.append(f" Current stack: {stack}")
+    lines.append("")
+    lines.append(" Original MD timeline:")
+    lines.append("")
+    lines.append(render_dasha(chart))
+
     return "\n".join(lines)
 
 
@@ -288,7 +303,7 @@ def _days(period: Period) -> str:
     return format_days(period.duration_days)
 
 
-def render_chart(chart: Chart) -> str:
+def render_chart(chart: Chart, dasha_depth: int = 5) -> str:
     """Human-readable representation of the full KP chart."""
     birth = chart.birth
     out = []
@@ -318,7 +333,7 @@ def render_chart(chart: Chart) -> str:
     out.append(render_ruling(chart))
     out.append("")
     out.append("VIMSHOTTARI DASHA")
-    out.append(render_dasha(chart))
+    out.append(render_deep_dasha(chart, depth=dasha_depth))
     out.append("")
     out.append("=" * 72)
     return "\n".join(out)
