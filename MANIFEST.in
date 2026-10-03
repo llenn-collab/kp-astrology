@@ -1,3 +1,0 @@
-recursive-include docs *.md *.yml *.yaml *.png *.jpg *.svg
-include CHANGELOG.md
-include CONTRIBUTING.md
