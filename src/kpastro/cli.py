@@ -96,7 +96,7 @@ def cmd_horary(args: argparse.Namespace) -> int:
     )
     print("")
     print(" Moment chart (planets & Placidus cusps for the query instant):")
-    print(render_chart(chart))
+    print(render_chart(chart, dasha_depth=args.dasha_depth))
     return 0
 
 
