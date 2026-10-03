@@ -1,5 +1,5 @@
 """A complete KP chart: compute, then render as professional text tables."""
-
+import json
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -262,6 +262,26 @@ def render_significators(chart: Chart) -> str:
 
 def render_ruling(chart: Chart) -> str:
     return "\n".join(f"  {rp.planet:<10} {rp.source}" for rp in chart.ruling)
+
+
+def render_dasha(chart: Chart) -> str:
+    epoch = chart.birth.utc_datetime()
+    lines = [" Mahadasha timeline (1 yr = 365.25 d):"]
+    lines.append("-" * 46)
+    lines.append(f" {'Lord':<10} {'Start':>10} {'End':>10} {'Days':>9}")
+    for md in chart.mahadashas:
+        start, end = md.as_datetimes(epoch)
+        lines.append(
+            f" {md.lord:<10} {start:%Y-%m-%d} {end:%Y-%m-%d} {md.duration_days:>8.1f}"
+        )
+    cur = chart.current
+    lines.append("")
+    lines.append(
+        f" At birth: MD {cur[1].lord} ({_days(cur[1])}), "
+        f"AD {cur[2].lord} ({_days(cur[2])}), "
+        f"PD {cur[3].lord} ({_days(cur[3])})"
+    )
+    return "\n".join(lines)
 
 
 def render_deep_dasha(chart: Chart, depth: int = 5) -> str:
