@@ -180,7 +180,7 @@ def compute_chart(
     moon_lon = sider["Moon"][0]
     balance = dasha_balance(moon_lon)
     mds = mahadasha_timeline(moon_lon)
-    current = current_periods(moon_lon, dt_utc, dt_utc, depth=3)
+    current = current_periods(moon_lon, dt_utc, dt_utc, depth=5)
 
     positions = {name: lon for name, (lon, _) in sider.items()}
     chart = Chart(
