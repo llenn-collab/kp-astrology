@@ -426,15 +426,32 @@ def _cusp_sublord_houses(chart: Chart) -> dict[str, list[int]]:
 def _node_agency(
     chart: Chart,
     sig_houses: dict[str, list[int]],
-) -> dict[str, dict[str, list]]:
-    """Rahu/Ketu agency: star-lord + occupied-sign lord, and their houses."""
+    ) -> dict[str, dict[str, list]]:
+    """Rahu/Ketu agency exactly as KP Stellar.
+
+    KP Stellar uses:
+        1. node's star-lord
+        2. node's own sign-lord
+
+    It does NOT use the sign-lord of the house cusp occupied by the node.
+    """
     nodes: dict[str, dict[str, list]] = {}
+
     for node_name in ("Rahu", "Ketu"):
         node_planet = next(
             p for p in chart.planets if p.name == node_name
         )
-        sign_lord = chart.cusps[node_planet.house - 1].sign_lord
-        agents = list(dict.fromkeys([node_planet.star_lord, sign_lord]))
+
+        # Correct KP Stellar agency:
+        # star-lord + node's own sign-lord.
+        agents = list(
+            dict.fromkeys(
+                [
+                    node_planet.star_lord,
+                    node_planet.sign_lord,
+                ]
+            )
+        )
 
         houses: set[int] = set()
         for agent in agents:
@@ -444,6 +461,7 @@ def _node_agency(
             "houses": sorted(houses),
             "planets": agents,
         }
+
     return nodes
 
 
