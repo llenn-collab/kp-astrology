@@ -158,7 +158,7 @@ def compute_chart(
                 sub_sub_lord=info.sub_sub_lord,
                 pada=info.pada,
                 speed_deg_day=speed,
-                retrograde=speed < 0 and name not in ("Rahu", "Ketu"),
+                retrograde=(speed < 0) or (name in ("Rahu", "Ketu")),
             )
         )
 
@@ -221,14 +221,14 @@ def _dms(lon: float) -> str:
 def render_planets(chart: Chart) -> str:
     lines = [
         f" {'Planet':<9} {'Longitude':>10} {'Sign':<12} {'Star':<18} "
-        f"{'Sub':<9} {'Sub-Sub':<9} {'House':>5} {'R':>2}"
+        f"{'Star-Lord':<10} {'Sub':<9} {'Sub-Sub':<9} {'House':>5} {'R':>2}"
     ]
     lines.append("-" * len(lines[0]))
     for p in sorted(chart.planets, key=lambda x: x.longitude):
-        abbr = PLANET_ABBR[p.name]
         lines.append(
             f" {p.name:<9} {_dms(p.sign_degree):<10} {p.sign:<12} "
-            f"{p.star:<18} {p.sub_lord:<9} {p.sub_sub_lord:<9} {p.house:>5} "
+            f"{p.star:<18} {p.star_lord:<10} {p.sub_lord:<9} "
+            f"{p.sub_sub_lord:<9} {p.house:>5} "
             f"{'R' if p.retrograde else '.':>2}"
         )
     return "\n".join(lines)
@@ -236,13 +236,14 @@ def render_planets(chart: Chart) -> str:
 
 def render_cusps(chart: Chart) -> str:
     lines = [
-        f" {'House':>5} {'Cusp':>10} {'Sign':<12} {'Star':<18} {'Sub':<9} {'Sub-Sub':<9}"
+        f" {'House':>5} {'Cusp':>10} {'Sign':<12} {'Star':<18} "
+        f"{'Star-Lord':<10} {'Sub':<9} {'Sub-Sub':<9}"
     ]
     lines.append("-" * len(lines[0]))
     for c in chart.cusps:
         lines.append(
             f" {c.house:>5} {_dms(c.longitude % 30.0):>10} {c.sign:<12} "
-            f"{c.star:<18} {c.sub_lord:<9} {c.sub_sub_lord:<9}"
+            f"{c.star:<18} {c.star_lord:<10} {c.sub_lord:<9} {c.sub_sub_lord:<9}"
         )
     return "\n".join(lines)
 
@@ -264,41 +265,19 @@ def render_ruling(chart: Chart) -> str:
     return "\n".join(f"  {rp.planet:<10} {rp.source}" for rp in chart.ruling)
 
 
-def render_dasha(chart: Chart) -> str:
-    epoch = chart.birth.utc_datetime()
-    lines = [" Mahadasha timeline (1 yr = 365.25 d):"]
-    lines.append("-" * 46)
-    lines.append(f" {'Lord':<10} {'Start':>10} {'End':>10} {'Days':>9}")
-    for md in chart.mahadashas:
-        start, end = md.as_datetimes(epoch)
-        lines.append(
-            f" {md.lord:<10} {start:%Y-%m-%d} {end:%Y-%m-%d} {md.duration_days:>8.1f}"
-        )
-    cur = chart.current
-    lines.append("")
-    lines.append(
-        f" At birth: MD {cur[1].lord} ({_days(cur[1])}), "
-        f"AD {cur[2].lord} ({_days(cur[2])}), "
-        f"PD {cur[3].lord} ({_days(cur[3])})"
-    )
-    return "\n".join(lines)
-
-
 def render_deep_dasha(chart: Chart, depth: int = 5) -> str:
-    """Render Vimshottari dasha to the requested depth."""
+    """Self-contained deep dasha renderer. Does NOT depend on render_dasha."""
     moon_lon = chart.planet_lon["Moon"]
     at_utc = chart.birth.utc_datetime()
     periods = deep_current_periods(moon_lon, at_utc, depth=depth)
 
-    lines = [
-        f" VIMSHOTTARI DASHA - DEEP ({depth} LEVELS)"
-    ]
-    lines.append("-" * 105)
+    lines = [f" VIMSHOTTARI DASHA - DEEP ({depth} LEVELS)"]
+    lines.append("-" * 108)
     lines.append(
         f" {'Level':<18} {'Lord':<8} {'Start UT':>19} {'End UT':>19} "
         f"{'Duration':>12} {'Balance':>12}"
     )
-    lines.append("-" * 105)
+    lines.append("-" * 108)
 
     for p in periods:
         lines.append(
@@ -311,16 +290,20 @@ def render_deep_dasha(chart: Chart, depth: int = 5) -> str:
     stack = " / ".join(p.lord for p in periods)
     lines.append("")
     lines.append(f" Current stack: {stack}")
-    lines.append("")
-    lines.append(" Original MD timeline:")
-    lines.append("")
-    lines.append(render_dasha(chart))
 
+    # Mahadasha timeline, inlined so there is no external renderer dependency.
+    epoch = chart.birth.utc_datetime()
+    lines.append("")
+    lines.append(" Mahadasha timeline (1 yr = 365.25 d):")
+    lines.append("-" * 46)
+    lines.append(f" {'Lord':<10} {'Start':>10} {'End':>10} {'Days':>9}")
+    for md in chart.mahadashas:
+        start, end = md.as_datetimes(epoch)
+        lines.append(
+            f" {md.lord:<10} {start:%Y-%m-%d} {end:%Y-%m-%d} "
+            f"{md.duration_days:>8.1f}"
+        )
     return "\n".join(lines)
-
-
-def _days(period: Period) -> str:
-    return format_days(period.duration_days)
 
 
 def render_chart(chart: Chart, dasha_depth: int = 5) -> str:
@@ -331,11 +314,13 @@ def render_chart(chart: Chart, dasha_depth: int = 5) -> str:
     out.append(" KRISHNAMURTI PADDHATI  -  birth chart")
     out.append("=" * 72)
     out.append(
-        f" {birth.date} {birth.time:%H:%M}  ({birth.latitude:.4f}, {birth.longitude:.4f})"
+        f" {birth.date} {birth.time:%H:%M}  "
+        f"({birth.latitude:.4f}, {birth.longitude:.4f})"
         f"  tz={birth.tz_hours:+.1f}  {birth.place}".rstrip()
     )
     out.append(
-        f" Ayanamsa: {chart.ayanamsa_mode} = {format_longitude(chart.ayanamsa)}  "
+        f" Ayanamsa: {chart.ayanamsa_mode} = "
+        f"{format_longitude(chart.ayanamsa)}  "
         f"node: {chart.node}  |  Asc {format_longitude(chart.ascendant)}  "
         f"MC {format_longitude(chart.midheaven)}"
     )
@@ -352,8 +337,200 @@ def render_chart(chart: Chart, dasha_depth: int = 5) -> str:
     out.append("RULING PLANETS")
     out.append(render_ruling(chart))
     out.append("")
-    out.append("VIMSHOTTARI DASHA")
     out.append(render_deep_dasha(chart, depth=dasha_depth))
     out.append("")
     out.append("=" * 72)
     return "\n".join(out)
+
+
+# ---------------------------------------------------------------------------
+# JSON export — schema aligned with KP Stellar (temp_v2.json)
+# ---------------------------------------------------------------------------
+
+def _deg_str(lon: float) -> str:
+    """Format longitude as DD°MM'SS\" with zero padding."""
+    lon = lon % 360.0
+    d = int(lon)
+    rem = (lon - d) * 60.0
+    m = int(rem)
+    s = round((rem - m) * 60.0)
+    if s == 60:
+        s = 0
+        m += 1
+    if m == 60:
+        m = 0
+        d = (d + 1) % 360
+    return f"{d:02d}\u00b0{m:02d}'{s:02d}\""
+
+
+def _kp_significator_map(chart: Chart) -> dict[int, dict[str, list[str]]]:
+    """Compute A/B/C/D significators per house from first principles."""
+    occupants: dict[int, list[str]] = {h: [] for h in range(1, 13)}
+    for p in chart.planets:
+        occupants[p.house].append(p.name)
+
+    house_of_planet: dict[str, int] = {p.name: p.house for p in chart.planets}
+
+    result: dict[int, dict[str, list[str]]] = {}
+    for h in range(1, 13):
+        cusp = chart.cusps[h - 1]
+        sign_lord = cusp.sign_lord
+
+        b = list(occupants[h])
+        a = [
+            p.name for p in chart.planets
+            if house_of_planet.get(p.star_lord) == h
+        ]
+        c = [p.name for p in chart.planets if p.star_lord == sign_lord]
+        d = [sign_lord]
+
+        result[h] = {
+            "planets_in_star_of_planets_in_house": a,
+            "planets_in_house": b,
+            "planets_in_star_of_house_lord": c,
+            "sign_lord": d,
+        }
+    return result
+
+
+def _planet_significator_houses(
+    chart: Chart,
+    sig_map: dict[int, dict[str, list[str]]],
+) -> dict[str, list[int]]:
+    """Houses where each planet is an A/B/C/D significator."""
+    out: dict[str, list[int]] = {p.name: [] for p in chart.planets}
+    for h in range(1, 13):
+        cats = sig_map[h]
+        names = (
+            set(cats["planets_in_star_of_planets_in_house"])
+            | set(cats["planets_in_house"])
+            | set(cats["planets_in_star_of_house_lord"])
+            | set(cats["sign_lord"])
+        )
+        for name in names:
+            if name in out and h not in out[name]:
+                out[name].append(h)
+    return out
+
+
+def _cusp_sublord_houses(chart: Chart) -> dict[str, list[int]]:
+    """Houses whose cusp sub-lord is the planet."""
+    out: dict[str, list[int]] = {p.name: [] for p in chart.planets}
+    for c in chart.cusps:
+        if c.sub_lord in out:
+            out[c.sub_lord].append(c.house)
+    return out
+
+
+def _node_agency(
+    chart: Chart,
+    sig_houses: dict[str, list[int]],
+) -> dict[str, dict[str, list]]:
+    """Rahu/Ketu agency: star-lord + occupied-sign lord, and their houses."""
+    nodes: dict[str, dict[str, list]] = {}
+    for node_name in ("Rahu", "Ketu"):
+        node_planet = next(
+            p for p in chart.planets if p.name == node_name
+        )
+        sign_lord = chart.cusps[node_planet.house - 1].sign_lord
+        agents = list(dict.fromkeys([node_planet.star_lord, sign_lord]))
+
+        houses: set[int] = set()
+        for agent in agents:
+            houses.update(sig_houses.get(agent, []))
+
+        nodes[node_name] = {
+            "houses": sorted(houses),
+            "planets": agents,
+        }
+    return nodes
+
+
+def chart_to_kp_json(chart: Chart, dasha_depth: int = 5) -> dict:
+    """Convert chart to a KP Stellar-compatible dictionary."""
+    sig_map = _kp_significator_map(chart)
+    sig_houses = _planet_significator_houses(chart, sig_map)
+    extra = _cusp_sublord_houses(chart)
+
+    planets: dict[str, dict] = {}
+    for p in chart.planets:
+        planets[p.name] = {
+            "sign": p.sign,
+            "house": p.house,
+            "degree": _deg_str(p.sign_degree),
+            "sign_lord": p.sign_lord,
+            "star_lord": p.star_lord,
+            "sub_lord": p.sub_lord,
+            "sub_sub_lord": p.sub_sub_lord,
+            "sublord_of_houses": sig_houses[p.name],
+            "extra_significator_houses": extra[p.name],
+            "retrograde": bool(p.retrograde),
+        }
+
+    cusps: dict[str, dict] = {}
+    for c in chart.cusps:
+        key = "Ascendant" if c.house == 1 else str(c.house)
+        cusps[key] = {
+            "sign": c.sign,
+            "degree": _deg_str(c.longitude % 30.0),
+            "sign_lord": c.sign_lord,
+            "star_lord": c.star_lord,
+            "sub_lord": c.sub_lord,
+            "sub_sub_lord": c.sub_sub_lord,
+            "significators": sig_map[c.house],
+        }
+
+    moon_lon = chart.planet_lon["Moon"]
+    periods = deep_current_periods(
+        moon_lon, chart.birth.utc_datetime(), depth=dasha_depth
+    )
+    dasha = {
+        "current_stack": [p.lord for p in periods],
+        "levels": [
+            {
+                "level": p.name,
+                "lord": p.lord,
+                "start_ut": p.start.strftime("%Y-%m-%d %H:%M:%S"),
+                "end_ut": p.end.strftime("%Y-%m-%d %H:%M:%S"),
+                "duration_days": round(p.duration_days, 2),
+                "balance_days": round(p.balance_days, 2),
+            }
+            for p in periods
+        ],
+    }
+
+    return {
+        "ayanamsa": format_longitude(chart.ayanamsa),
+        "ayanamsa_mode": chart.ayanamsa_mode,
+        "node": chart.node,
+        "ascendant": format_longitude(chart.ascendant),
+        "midheaven": format_longitude(chart.midheaven),
+        "planets": planets,
+        "cusps": cusps,
+        "nodes": _node_agency(chart, sig_houses),
+        "vimsottari_dasha": dasha,
+        "legend": {
+            "R": "Retrograde planet",
+            "planets_in_star_of_planets_in_house":
+                "A: planets in the star of planets occupying the house",
+            "planets_in_house":
+                "B: planets occupying the house",
+            "planets_in_star_of_house_lord":
+                "C: planets in the star of the house sign-lord",
+            "sign_lord":
+                "D: sign-lord of the house cusp",
+            "sublord_of_houses":
+                "houses where the planet is a significator (A/B/C/D)",
+            "extra_significator_houses":
+                "houses whose cusp sub-lord is the planet",
+        },
+    }
+
+
+def render_chart_json(chart: Chart, dasha_depth: int = 5) -> str:
+    """Serialize the KP Stellar-compatible chart dict to JSON text."""
+    return json.dumps(
+        chart_to_kp_json(chart, dasha_depth=dasha_depth),
+        indent=2,
+        ensure_ascii=False,
+    )
