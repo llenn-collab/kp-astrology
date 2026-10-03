@@ -253,22 +253,17 @@ class SubSubInfo:
 
 @lru_cache(maxsize=4096)
 def sub_sub_info(lon: float) -> SubSubInfo:
-    """Locate the sub-sub-lord of the given sidereal longitude (cached).
-
-    A sub is divided into 9 sub-subs proportionally to the Vimshottari years,
-    measured against the **sub's own width** (not the star's 800' span): the
-    sub-sub sequence starts at the sub-lord and each sub-sub spans
-
-    .. math::
-
-        \\text{sub-sub span} = \\text{sub span} \\times \\frac{\\text{lord's years}}{120}
-
-    """
+    """Locate the sub-sub-lord of the given sidereal longitude (cached)."""
     lon = normalize_longitude(lon)
     sub = sub_info(lon)
     probe = min(lon + _BOUNDARY_TOL, sub.end_deg - 1e-12)
     running = 0.0
-    for k, (lord, _start_deg, _end_deg, _span) in enumerate(sub_divisions(sub.index)):
+    
+    # FIX: Seed the sequence from the actual Sub-Lord, not the sub's index
+    start_pos = VIMSHOTTARI_INDEX[sub.lord]
+    
+    for k in range(9):
+        lord = VIMSHOTTARI_ORDER[(start_pos + k) % 9]
         span = sub.span_arcmin * VIMSHOTTARI_YEARS[lord] / VIMSHOTTARI_TOTAL_YEARS
         start_deg = sub.start_deg + running / 60.0
         end_deg = start_deg + span / 60.0
