@@ -23,6 +23,7 @@ from .ephemeris import SwissEphemeris, download_ephemeris
 from .horary import MAX_HORARY_NUMBER, ascendant_from_kp_number
 from .significators import ruling_planets
 from .vedic import format_longitude
+from .deep_dasha import deep_current_periods
 
 
 def _date_arg(arg: str) -> DateType:
