@@ -1,15 +1,24 @@
-"""Deep recursive Vimshottari dasha periods.
+"""Deep recursive Vimshottari dasha periods (MD/AD/PD/Sookshma/Prana/...).
 
-This module computes MD / AD / PD / Sookshma / Prana and can be extended
-deeper by increasing the depth argument.
+The arc-to-time mapping is:
 
-The method used is the KP/Vimshottari arc-to-time mapping:
+1. The Moon's position inside its nakshatra fixes the birth Mahadasha lord and
+   how much of that Mahadasha had already elapsed at birth.
+2. Every deeper lord is found by recursively dividing the parent's arc in
+   proportion to the Vimshottari year counts.
+3. Arc is mapped linearly onto time using the parent's own duration.
 
-1. The Moon's position inside the nakshatra determines Mahadasha.
-2. The sub, sub-sub, and deeper lords are found by recursively dividing
-   the current segment proportionally to Vimshottari years.
-3. Arc boundaries are mapped linearly into time using the Mahadasha
-   total duration.
+Two distinct queries are supported and must not be conflated:
+
+* :func:`dasha_segments` / :func:`birth_stack` - the stack implied by the
+  **birth** Moon longitude.  Immutable for a given chart.
+* :func:`deep_current_periods` - the stack active at an arbitrary
+  **query datetime**.  This walks the real timeline forward from the absolute
+  mahadasha start and is what KP Stellar's dasha panel displays.
+
+The previous implementation returned the birth stack regardless of the datetime
+it was handed, so the "current" panel never advanced past the first period of
+each level.
 """
 
 from __future__ import annotations
@@ -23,6 +32,13 @@ from .constants import (
     VIMSHOTTARI_TOTAL_YEARS,
     VIMSHOTTARI_YEARS,
 )
+from .dasha import (
+    DASHA_LEVEL_NAMES,
+    DAYS_PER_YEAR,
+    absolute_periods,
+    dasha_balance,
+    mahadasha_days,
+)
 from .vedic import (
     STAR_SPAN_ARCMIN,
     STAR_SPAN_DEG,
@@ -33,16 +49,14 @@ from .vedic import (
     sub_sub_info,
 )
 
-DASHA_LEVEL_NAMES: tuple[str, ...] = (
-    "Mahadasha",
-    "Antardasha",
-    "Pratyantardasha",
-    "Sookshma",
-    "Prana",
-    "Deha",
-    "Jeeva",
-    "Karma",
-)
+__all__ = [
+    "DASHA_LEVEL_NAMES",
+    "DeepDashaPeriod",
+    "birth_stack",
+    "dasha_segments",
+    "deep_current_periods",
+    "deep_lords_at",
+]
 
 
 @dataclass(frozen=True)
@@ -69,8 +83,18 @@ class _DashaSegment:
     span_arcmin: float
 
 
+def _level_name(level: int) -> str:
+    if 1 <= level <= len(DASHA_LEVEL_NAMES):
+        return DASHA_LEVEL_NAMES[level - 1]
+    return f"Level {level}"
+
+
+# ---------------------------------------------------------------------------
+# Birth-anchored arc segments
+# ---------------------------------------------------------------------------
+
 def _child_segment(lon: float, parent: _DashaSegment) -> _DashaSegment:
-    """Find the child segment containing longitude inside parent segment."""
+    """Find the child segment containing ``lon`` inside ``parent``."""
     lon = normalize_longitude(lon)
     probe = min(lon + 1e-9, parent.end_deg - 1e-12)
 
@@ -180,63 +204,80 @@ def dasha_segments(moon_lon: float, depth: int = 5) -> list[_DashaSegment]:
     return segments
 
 
+def birth_stack(moon_lon: float, depth: int = 5) -> list[str]:
+    """Lords of the dasha stack implied by the birth Moon, MD first."""
+    return [seg.lord for seg in dasha_segments(moon_lon, depth=depth)]
+
+
+# ---------------------------------------------------------------------------
+# Query-date resolution
+# ---------------------------------------------------------------------------
+
 def deep_current_periods(
     moon_lon: float,
-    at_utc: datetime,
+    birth_utc: datetime,
     depth: int = 5,
+    query_utc: datetime | None = None,
 ) -> list[DeepDashaPeriod]:
-    """Compute current Vimshottari periods up to depth.
+    """Compute the Vimshottari stack active at ``query_utc``, levels 1..depth.
 
-    `at_utc` must be UTC, not local time.
+    ``moon_lon`` is the **sidereal birth** Moon longitude; ``birth_utc`` is the
+    birth moment in UTC (it anchors the mahadasha).  ``query_utc`` defaults to
+    ``birth_utc``, which reproduces the birth stack.
+
+    All datetimes in the result are UTC.
     """
-    segments = dasha_segments(moon_lon, depth=depth)
-    lon = normalize_longitude(moon_lon)
+    if depth < 1:
+        raise ValueError("depth must be >= 1")
 
-    star_segment = segments[0]
-    star_start = star_segment.start_deg
-    md_lord = star_segment.lord
+    instant = query_utc or birth_utc
+    raw = absolute_periods(moon_lon, birth_utc, instant, depth=depth)
 
-    # Mahadasha total duration in days
-    md_total_days = VIMSHOTTARI_YEARS[md_lord] * 365.25
-
-    # Elapsed MD days at birth / event time
-    elapsed_md_days = (
-        (lon - star_start) / STAR_SPAN_DEG * md_total_days
-    )
-
-    md_start = at_utc - timedelta(days=elapsed_md_days)
+    elapsed_days = (instant - birth_utc).total_seconds() / 86400.0
 
     periods: list[DeepDashaPeriod] = []
-
-    for seg in segments:
-        start_offset_days = (
-            (seg.start_deg - star_start) / STAR_SPAN_DEG * md_total_days
-        )
-        end_offset_days = (
-            (seg.end_deg - star_start) / STAR_SPAN_DEG * md_total_days
-        )
-
-        start = md_start + timedelta(days=start_offset_days)
-        end = md_start + timedelta(days=end_offset_days)
-
-        duration_days = (end - start).total_seconds() / 86400.0
-        balance_days = (end - at_utc).total_seconds() / 86400.0
-
-        if seg.level <= len(DASHA_LEVEL_NAMES):
-            name = DASHA_LEVEL_NAMES[seg.level - 1]
-        else:
-            name = f"Level {seg.level}"
-
+    for p in raw:
+        start = birth_utc + timedelta(days=p.start_days)
+        end = birth_utc + timedelta(days=p.end_days)
         periods.append(
             DeepDashaPeriod(
-                level=seg.level,
-                name=name,
-                lord=seg.lord,
+                level=p.level,
+                name=_level_name(p.level),
+                lord=p.lord,
                 start=start,
                 end=end,
-                duration_days=duration_days,
-                balance_days=balance_days,
+                duration_days=p.duration_days,
+                balance_days=p.end_days - elapsed_days,
             )
         )
-
     return periods
+
+
+def deep_lords_at(
+    moon_lon: float,
+    birth_utc: datetime,
+    depth: int = 5,
+    query_utc: datetime | None = None,
+) -> list[str]:
+    """Convenience: just the lord names of the active stack, MD first."""
+    return [
+        p.lord
+        for p in deep_current_periods(moon_lon, birth_utc, depth, query_utc)
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Diagnostics
+# ---------------------------------------------------------------------------
+
+def birth_balance_summary(moon_lon: float) -> dict[str, float]:
+    """Elapsed / remaining mahadasha days at birth (debug + rectification aid)."""
+    bal = dasha_balance(moon_lon)
+    total = mahadasha_days(bal.mahadasha_lord)
+    return {
+        "mahadasha_lord_years": VIMSHOTTARI_YEARS[bal.mahadasha_lord],
+        "mahadasha_total_days": total,
+        "elapsed_days": total - bal.mahadasha_days,
+        "balance_days": bal.mahadasha_days,
+        "balance_years": bal.mahadasha_days / DAYS_PER_YEAR,
+    }
