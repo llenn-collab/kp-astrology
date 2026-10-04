@@ -341,7 +341,6 @@ class SwissEphemeris:
         out["Ketu"] = ((rahu_lon + 180.0) % 360.0, rahu_speed)
         return out
 
-
     def sidereal_positions(self, jd_ut: float) -> dict[str, tuple[float, float]]:
         ayan = self.ayanamsa(jd_ut)
         return {
@@ -378,5 +377,6 @@ class SwissEphemeris:
         armc = normalize_longitude(ascmc[2] - ayan)
         return cusps, asc, mc, armc
 
-    def ephemeris_version() -> str:
-        return str(getattr(swe, "version", "unknown"))
+
+def ephemeris_version() -> str:
+    return str(getattr(swe, "version", "unknown"))
