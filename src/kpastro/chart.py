@@ -546,10 +546,18 @@ def chart_to_kp_json(chart: Chart, dasha_depth: int = 5) -> dict:
     }
 
 
+def strip_strings(obj):
+    """Recursively strips trailing spaces from all dict keys and string values."""
+    if isinstance(obj, dict):
+        return {k.strip() if isinstance(k, str) else k: strip_strings(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [strip_strings(i) for i in obj]
+    if isinstance(obj, str):
+        return obj.strip()
+    return obj
+
 def render_chart_json(chart: Chart, dasha_depth: int = 5) -> str:
-    """Serialize the KP Stellar-compatible chart dict to JSON text."""
-    return json.dumps(
-        chart_to_kp_json(chart, dasha_depth=dasha_depth),
-        indent=2,
-        ensure_ascii=False,
-    )
+    """Serialize the KP Stellar-compatible chart dict to clean JSON text."""
+    raw_json = chart_to_kp_json(chart, dasha_depth=dasha_depth)
+    clean_json = strip_strings(raw_json) # <--- CRITICAL FIX
+    return json.dumps(clean_json, indent=2, ensure_ascii=False)
