@@ -371,7 +371,6 @@ def absolute_periods(
 
     return periods
 
-
 def current_periods(
     moon_longitude: float,
     epoch: datetime,
