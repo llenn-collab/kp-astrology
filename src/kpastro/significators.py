@@ -27,7 +27,6 @@ from dataclasses import dataclass
 from .constants import SIGN_LORDS, SIGNS, SIGNS_RULED_BY, WEEKDAY_LORDS
 from .vedic import point_info, sign_index, star_lord, sub_lord
 
-
 # ---------------------------------------------------------------------------
 # House geometry (Placidus cusps)
 # ---------------------------------------------------------------------------
@@ -35,24 +34,27 @@ from .vedic import point_info, sign_index, star_lord, sub_lord
 def house_of_longitude(lon: float, cusps: list[float]) -> int:
     """House (1-12) containing a longitude under Placidus cusps.
 
-    Houses advance counter-clockwise from each cusp to the next; cusp 12 wraps
-    to cusp 1 + 360°.
+    Handles 360° -> 0° wrap-around correctly regardless of Ascendant position.
     """
     lon = lon % 360.0
-    c0 = cusps[0] % 360.0
-    if lon < c0:
-        lon += 360.0
-    for i, c in enumerate(cusps):
-        nxt = cusps[i + 1] if i < 11 else c0 + 360.0
-        if c <= lon < nxt:
-            return i + 1
-    return 12
-
+    for i in range(12):
+        c1 = cusps[i] % 360.0
+        c2 = cusps[(i + 1) % 12] % 360.0
+        
+        if c1 < c2:
+            # Normal case: cusp advances without crossing 0°
+            if c1 <= lon < c2:
+                return i + 1
+        else:
+            # Wrap-around case (e.g., House 12 spans 350° to 20°)
+            if lon >= c1 or lon < c2:
+                return i + 1
+                
+    return 1  # Fallback, should never hit if cusps are valid
 
 def house_of_sign(sign_num: int, cusps: list[float]) -> int:
     """House containing the beginning of a sign (sign_num 0..11)."""
     return house_of_longitude(sign_num * 30.0, cusps)
-
 
 # ---------------------------------------------------------------------------
 # Planet -> houses (Grah Nirdeshan)
@@ -65,7 +67,6 @@ class Signification:
     by_occupation: bool
     by_sign_lordship: bool
     by_star_lord: bool
-
 
 def planet_significations(
     positions: dict[str, float],
@@ -100,7 +101,6 @@ def planet_significations(
         result[planet] = sorted(sig_map.values(), key=lambda s: s.house)
     return result
 
-
 # ---------------------------------------------------------------------------
 # House -> planets (Bhaav Nirdeshan)
 # ---------------------------------------------------------------------------
@@ -111,7 +111,6 @@ def _planets_in_stars(
     star_lords_cache: dict[str, str],
 ) -> list[str]:
     return [p for p in positions if star_lords_cache.get(p) == star_lord_name]
-
 
 def house_significations(
     positions: dict[str, float], cusps: list[float]
@@ -150,11 +149,9 @@ def house_significations(
         out.append(tiers)
     return out
 
-
 def cusp_sub_lords(cusps: list[float]) -> dict[int, str]:
     """Sub-lord of each house cusp (the KP judge of that house)."""
     return {i + 1: sub_lord(cusps[i]) for i in range(12)}
-
 
 # ---------------------------------------------------------------------------
 # Ruling planets
@@ -164,7 +161,6 @@ def cusp_sub_lords(cusps: list[float]) -> dict[int, str]:
 class RulingPlanet:
     planet: str
     source: str
-
 
 def ruling_planets(
     ascendant_lon: float,
