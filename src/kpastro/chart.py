@@ -1,10 +1,12 @@
 """A complete KP chart: compute, then render as professional text tables."""
 
 from __future__ import annotations
+
 import json
 
 from dataclasses import dataclass, field
 from datetime import date as DateType, datetime, timedelta, time as TimeType
+from typing import Any
 
 from .constants import PLANET_ABBR
 from .dasha import (
@@ -15,6 +17,7 @@ from .dasha import (
     dasha_balance,
     format_days,
     mahadasha_timeline,
+    mahadasha_timeline_absolute,
 )
 from .ephemeris import SwissEphemeris
 from .significators import (
@@ -118,6 +121,17 @@ class Chart:
     house_significators: list[list[tuple[str, int]]]
     cusp_sublords: dict[int, str]
     ruling: list = field(default_factory=list)
+    #: UTC instant the dasha stack in ``current`` was resolved for.
+    query_utc: datetime | None = None
+
+    @property
+    def birth_utc(self) -> datetime:
+        return self.birth.utc_datetime()
+
+    @property
+    def effective_query_utc(self) -> datetime:
+        """``query_utc`` when set, otherwise the birth moment."""
+        return self.query_utc or self.birth.utc_datetime()
 
 
 def compute_chart(
@@ -125,9 +139,20 @@ def compute_chart(
     ayanamsa: str = "lahiri",
     node: str = "mean",
     eph: SwissEphemeris | None = None,
+    query_utc: datetime | None = None,
+    house_latitude_model: str = "geocentric",
 ) -> Chart:
-    """Compute every KP layer for a birth chart."""
-    eph = eph or SwissEphemeris(ayanamsa=ayanamsa, node=node)
+    """Compute every KP layer for a birth chart.
+
+    ``query_utc`` is the instant the Vimshottari stack is resolved for.  It
+    defaults to the birth moment; pass ``datetime.utcnow()`` (or an explicit
+    date) to reproduce a commercial app's "current dasha" panel.
+    """
+    eph = eph or SwissEphemeris(
+        ayanamsa=ayanamsa,
+        node=node,
+        house_latitude_model=house_latitude_model,
+    )
     if eph.ayanamsa_mode != ayanamsa or eph.node != node:
         raise ValueError(
             f"ayanamsa/node do not match the injected eph instance: "
@@ -135,6 +160,8 @@ def compute_chart(
             f"requested ayanamsa={ayanamsa!r}, node={node!r}"
         )
     dt_utc = birth.utc_datetime()
+    instant_utc = query_utc or dt_utc
+
     jd = eph.jd_ut(dt_utc)
     ayan = eph.ayanamsa(jd)
     sider = eph.sidereal_positions(jd)
@@ -182,7 +209,10 @@ def compute_chart(
     moon_lon = sider["Moon"][0]
     balance = dasha_balance(moon_lon)
     mds = mahadasha_timeline(moon_lon)
-    current = current_periods(moon_lon, dt_utc, dt_utc, depth=5)
+    # NOTE: epoch == birth, instant == query. Passing the birth moment for both
+    # (the previous behaviour) always yields the birth stack, never the current
+    # one -- that was the Saturn/Saturn bug.
+    current = current_periods(moon_lon, dt_utc, instant_utc, depth=5)
 
     positions = {name: lon for name, (lon, _) in sider.items()}
     chart = Chart(
@@ -207,6 +237,7 @@ def compute_chart(
             rp
             for rp in ruling_planets(asc, moon_lon, birth.date.weekday())
         ],
+        query_utc=instant_utc,
     )
     return chart
 
@@ -266,13 +297,20 @@ def render_ruling(chart: Chart) -> str:
     return "\n".join(f"  {rp.planet:<10} {rp.source}" for rp in chart.ruling)
 
 
-def render_deep_dasha(chart: Chart, depth: int = 5) -> str:
+def render_deep_dasha(
+    chart: Chart,
+    depth: int = 5,
+    query_utc: datetime | None = None,
+) -> str:
     """Self-contained deep dasha renderer. Does NOT depend on render_dasha."""
     moon_lon = chart.planet_lon["Moon"]
-    at_utc = chart.birth.utc_datetime()
-    periods = deep_current_periods(moon_lon, at_utc, depth=depth)
+    birth_utc = chart.birth.utc_datetime()
+    instant = query_utc or chart.effective_query_utc
+    periods = deep_current_periods(moon_lon, birth_utc, depth=depth, query_utc=instant)
 
     lines = [f" VIMSHOTTARI DASHA - DEEP ({depth} LEVELS)"]
+    lines.append(f" Resolved for: {instant:%Y-%m-%d %H:%M:%S} UT"
+                 f"   (birth: {birth_utc:%Y-%m-%d %H:%M:%S} UT)")
     lines.append("-" * 108)
     lines.append(
         f" {'Level':<18} {'Lord':<8} {'Start UT':>19} {'End UT':>19} "
@@ -292,14 +330,17 @@ def render_deep_dasha(chart: Chart, depth: int = 5) -> str:
     lines.append("")
     lines.append(f" Current stack: {stack}")
 
-    # Mahadasha timeline, inlined so there is no external renderer dependency.
-    epoch = chart.birth.utc_datetime()
+    # Absolute mahadasha timeline: every MD at full nominal length, the opening
+    # one starting before birth.  This is the KP Stellar convention and the only
+    # one that lines up with the deep levels above.
+    moon_lon = chart.planet_lon["Moon"]
+    absolute_mds = mahadasha_timeline_absolute(moon_lon, cycles=2)
     lines.append("")
-    lines.append(" Mahadasha timeline (1 yr = 365.25 d):")
+    lines.append(" Mahadasha timeline, absolute (1 yr = 365.25 d):")
     lines.append("-" * 46)
     lines.append(f" {'Lord':<10} {'Start':>10} {'End':>10} {'Days':>9}")
-    for md in chart.mahadashas:
-        start, end = md.as_datetimes(epoch)
+    for md in absolute_mds:
+        start, end = md.as_datetimes(birth_utc)
         lines.append(
             f" {md.lord:<10} {start:%Y-%m-%d} {end:%Y-%m-%d} "
             f"{md.duration_days:>8.1f}"
@@ -349,7 +390,7 @@ def render_chart(chart: Chart, dasha_depth: int = 5) -> str:
 # ---------------------------------------------------------------------------
 
 def _deg_str(lon: float) -> str:
-    """Format longitude as DD°MM'SS\" with zero padding."""
+    """Format longitude as DD°MM'SS" with zero padding."""
     lon = lon % 360.0
     d = int(lon)
     rem = (lon - d) * 60.0
@@ -362,6 +403,27 @@ def _deg_str(lon: float) -> str:
         m = 0
         d = (d + 1) % 360
     return f"{d:02d}\u00b0{m:02d}'{s:02d}\""
+
+
+def _strip_strings(obj: Any) -> Any:
+    """Recursively strip whitespace from every dict key and string value.
+
+    Downstream formatters (``format_longitude``, ``point_info``) emit padded
+    strings such as ``'24°07'44.7 "'`` and ``'Saturn '``.  Left in place they
+    break exact-match diffing against reference JSON, corrupt key lookups, and
+    waste LLM tokens.  Normalising once at the serialisation boundary keeps the
+    internal model untouched while guaranteeing clean output.
+    """
+    if isinstance(obj, dict):
+        return {
+            (k.strip() if isinstance(k, str) else k): _strip_strings(v)
+            for k, v in obj.items()
+        }
+    if isinstance(obj, (list, tuple)):
+        return [_strip_strings(v) for v in obj]
+    if isinstance(obj, str):
+        return obj.strip()
+    return obj
 
 
 def _kp_significator_map(chart: Chart) -> dict[int, dict[str, list[str]]]:
@@ -386,9 +448,9 @@ def _kp_significator_map(chart: Chart) -> dict[int, dict[str, list[str]]]:
         d = [sign_lord]
 
         result[h] = {
-            "planets_in_star_of_planets_in_house": a,
-            "planets_in_house": b,
-            "planets_in_star_of_house_lord": c,
+            "planets_in_star_of_planets_in_house": sorted(set(a)),
+            "planets_in_house": sorted(set(b)),
+            "planets_in_star_of_house_lord": sorted(set(c)),
             "sign_lord": d,
         }
     return result
@@ -411,7 +473,7 @@ def _planet_significator_houses(
         for name in names:
             if name in out and h not in out[name]:
                 out[name].append(h)
-    return out
+    return {k: sorted(v) for k, v in out.items()}
 
 
 def _cusp_sublord_houses(chart: Chart) -> dict[str, list[int]]:
@@ -420,37 +482,28 @@ def _cusp_sublord_houses(chart: Chart) -> dict[str, list[int]]:
     for c in chart.cusps:
         if c.sub_lord in out:
             out[c.sub_lord].append(c.house)
-    return out
+    return {k: sorted(v) for k, v in out.items()}
 
 
 def _node_agency(
     chart: Chart,
     sig_houses: dict[str, list[int]],
-    ) -> dict[str, dict[str, list]]:
+) -> dict[str, dict[str, list]]:
     """Rahu/Ketu agency exactly as KP Stellar.
 
-    KP Stellar uses:
-        1. node's star-lord
-        2. node's own sign-lord
-
-    It does NOT use the sign-lord of the house cusp occupied by the node.
+    The agents are the node's **star-lord** and the node's **own sign-lord**
+    (the lord of the sign the node occupies).  It is *not* the sign-lord of the
+    house cusp the node happens to sit in -- those coincide only by accident
+    (e.g. Rahu in Aquarius inside a Capricorn 10th), which is why the bug stayed
+    invisible for Rahu while corrupting Ketu.
     """
     nodes: dict[str, dict[str, list]] = {}
 
     for node_name in ("Rahu", "Ketu"):
-        node_planet = next(
-            p for p in chart.planets if p.name == node_name
-        )
+        node_planet = next(p for p in chart.planets if p.name == node_name)
 
-        # Correct KP Stellar agency:
-        # star-lord + node's own sign-lord.
         agents = list(
-            dict.fromkeys(
-                [
-                    node_planet.star_lord,
-                    node_planet.sign_lord,
-                ]
-            )
+            dict.fromkeys([node_planet.star_lord, node_planet.sign_lord])
         )
 
         houses: set[int] = set()
@@ -465,7 +518,11 @@ def _node_agency(
     return nodes
 
 
-def chart_to_kp_json(chart: Chart, dasha_depth: int = 5) -> dict:
+def chart_to_kp_json(
+    chart: Chart,
+    dasha_depth: int = 5,
+    query_utc: datetime | None = None,
+) -> dict:
     """Convert chart to a KP Stellar-compatible dictionary."""
     sig_map = _kp_significator_map(chart)
     sig_houses = _planet_significator_houses(chart, sig_map)
@@ -500,10 +557,15 @@ def chart_to_kp_json(chart: Chart, dasha_depth: int = 5) -> dict:
         }
 
     moon_lon = chart.planet_lon["Moon"]
+    birth_utc = chart.birth.utc_datetime()
+    instant = query_utc or chart.effective_query_utc
+
     periods = deep_current_periods(
-        moon_lon, chart.birth.utc_datetime(), depth=dasha_depth
+        moon_lon, birth_utc, depth=dasha_depth, query_utc=instant
     )
     dasha = {
+        "resolved_for_ut": instant.strftime("%Y-%m-%d %H:%M:%S"),
+        "birth_ut": birth_utc.strftime("%Y-%m-%d %H:%M:%S"),
         "current_stack": [p.lord for p in periods],
         "levels": [
             {
@@ -542,22 +604,19 @@ def chart_to_kp_json(chart: Chart, dasha_depth: int = 5) -> dict:
                 "houses where the planet is a significator (A/B/C/D)",
             "extra_significator_houses":
                 "houses whose cusp sub-lord is the planet",
+            "resolved_for_ut":
+                "UTC instant the dasha stack was evaluated at (not the birth)",
         },
     }
 
 
-def strip_strings(obj):
-    """Recursively strips trailing spaces from all dict keys and string values."""
-    if isinstance(obj, dict):
-        return {k.strip() if isinstance(k, str) else k: strip_strings(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [strip_strings(i) for i in obj]
-    if isinstance(obj, str):
-        return obj.strip()
-    return obj
-
-def render_chart_json(chart: Chart, dasha_depth: int = 5) -> str:
+def render_chart_json(
+    chart: Chart,
+    dasha_depth: int = 5,
+    query_utc: datetime | None = None,
+) -> str:
     """Serialize the KP Stellar-compatible chart dict to clean JSON text."""
-    raw_json = chart_to_kp_json(chart, dasha_depth=dasha_depth)
-    clean_json = strip_strings(raw_json) # <--- CRITICAL FIX
-    return json.dumps(clean_json, indent=2, ensure_ascii=False)
+    payload = _strip_strings(
+        chart_to_kp_json(chart, dasha_depth=dasha_depth, query_utc=query_utc)
+    )
+    return json.dumps(payload, indent=2, ensure_ascii=False)
