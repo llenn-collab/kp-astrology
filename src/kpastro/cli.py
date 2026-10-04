@@ -5,27 +5,25 @@ Subcommands
 natal                compute a complete KP birth chart
 horary               KP horary chart from a 1-249 number
 dasha                Vimshottari dasha timeline only
-rulings              ruling planets for a moment
+rulings              ruling planets of a moment
 ayanamsa             ayanamsa value for a date
 download-ephemeris   fetch Swiss Ephemeris data files for full precision
 """
 
 from __future__ import annotations
 
-
 import argparse
 import sys
-from datetime import date as DateType, time as TimeType
+from datetime import date as DateType, time as TimeType, datetime
 
 from . import __version__
 from .chart import BirthInfo, compute_chart, render_chart, render_chart_json
 from .dasha import mahadasha_timeline
-from .ephemeris import SwissEphemeris, download_ephemeris
+from .ephemeris import AYANAMSA_MODES, SwissEphemeris, download_ephemeris
 from .horary import MAX_HORARY_NUMBER, ascendant_from_kp_number
 from .significators import ruling_planets
 from .vedic import format_longitude
 from .deep_dasha import deep_current_periods
-
 
 def _date_arg(arg: str) -> DateType:
     try:
@@ -34,7 +32,6 @@ def _date_arg(arg: str) -> DateType:
         raise argparse.ArgumentTypeError(
             f"invalid date {arg!r}; use YYYY-MM-DD"
         ) from None
-
 
 def _horary_number_arg(arg: str) -> int:
     try:
@@ -49,7 +46,6 @@ def _horary_number_arg(arg: str) -> int:
         )
     return value
 
-
 def _parse_time(arg: str) -> TimeType:
     parts = arg.split(":")
     if len(parts) == 2:
@@ -60,7 +56,6 @@ def _parse_time(arg: str) -> TimeType:
         return TimeType(hh, mm, ss)
     raise argparse.ArgumentTypeError("time must be HH:MM or HH:MM:SS")
 
-
 def cmd_natal(args: argparse.Namespace) -> int:
     birth = BirthInfo(
         date=args.date,
@@ -70,14 +65,20 @@ def cmd_natal(args: argparse.Namespace) -> int:
         tz_hours=args.tz,
         place=args.place,
     )
-    chart = compute_chart(birth, ayanamsa=args.ayanamsa, node=args.node)
+    # KP Stellar resolves the "current" dasha stack at the time of query, not birth.
+    query_time = datetime.utcnow()
+    chart = compute_chart(
+        birth, 
+        ayanamsa=args.ayanamsa, 
+        node=args.node,
+        query_utc=query_time,
+    )
     depth = getattr(args, "dasha_depth", 5)
     if getattr(args, "json", False):
-        print(render_chart_json(chart, dasha_depth=depth))
+        print(render_chart_json(chart, dasha_depth=depth, query_utc=query_time))
     else:
         print(render_chart(chart, dasha_depth=depth))
     return 0
-
 
 def cmd_horary(args: argparse.Namespace) -> int:
     q = ascendant_from_kp_number(args.number)
@@ -89,7 +90,14 @@ def cmd_horary(args: argparse.Namespace) -> int:
         tz_hours=args.tz,
         place=args.place,
     )
-    chart = compute_chart(birth, ayanamsa=args.ayanamsa, node=args.node)
+    # For horary, the query time IS the birth time.
+    query_time = birth.utc_datetime()
+    chart = compute_chart(
+        birth, 
+        ayanamsa=args.ayanamsa, 
+        node=args.node,
+        query_utc=query_time,
+    )
     print("=" * 72)
     print(" KRISHNAMURTI PADDHATI - horary (Prashna)")
     print("=" * 72)
@@ -104,7 +112,6 @@ def cmd_horary(args: argparse.Namespace) -> int:
     print(" Moment chart (planets & Placidus cusps for the query instant):")
     print(render_chart(chart, dasha_depth=args.dasha_depth))
     return 0
-
 
 def cmd_dasha(args: argparse.Namespace) -> int:
     birth = BirthInfo(
@@ -132,13 +139,11 @@ def cmd_dasha(args: argparse.Namespace) -> int:
         print(f"  {md.lord:<10} {s:%Y-%m-%d}  {e:%Y-%m-%d}  {md.duration_days:8.1f}d{tag}")
     return 0
 
-
 def format_dash_days(balance) -> str:
     days = balance.mahadasha_days
     years, rem = divmod(days, 365.25)
     months, rem = divmod(rem, 30.4375)
     return f"{int(years)}y {int(months)}m {rem:.1f}d"
-
 
 def cmd_rulings(args: argparse.Namespace) -> int:
     chart = compute_chart(
@@ -158,7 +163,6 @@ def cmd_rulings(args: argparse.Namespace) -> int:
         print(f"  {rp.planet:<10} {rp.source}")
     return 0
 
-
 def cmd_ayanamsa(args: argparse.Namespace) -> int:
     from datetime import datetime as _dt
     eph = SwissEphemeris(ayanamsa=args.ayanamsa)
@@ -168,14 +172,12 @@ def cmd_ayanamsa(args: argparse.Namespace) -> int:
     print(f" {args.ayanamsa:<7} ayanamsa on {args.date} (12:00 UT) = {format_longitude(ayan)}")
     return 0
 
-
 def cmd_download(args: argparse.Namespace) -> int:
     target = args.dir or None
     paths = download_ephemeris(target)
     for p in paths:
         print(f"  ok  {p} ({p.stat().st_size:,} bytes)")
     return 0
-
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -185,7 +187,6 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = p.add_subparsers(dest="command", required=True)
 
-
     def add_common(sp: argparse.ArgumentParser, with_number: bool = False) -> None:
         sp.add_argument("--date", default=DateType.today().isoformat(), type=_date_arg, help="YYYY-MM-DD (default today)")
         sp.add_argument("--time", default="12:00", type=_parse_time, help="HH:MM or HH:MM:SS local (default 12:00)")
@@ -193,7 +194,8 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("--lat", type=float, required=True, help="geographic latitude (deg)")
         sp.add_argument("--lon", type=float, required=True, help="geographic longitude (deg)")
         sp.add_argument("--place", default="", help="place label")
-        sp.add_argument("--ayanamsa", choices=("lahiri", "kp", "kp_old"), default="lahiri")
+        # FIX: Dynamically pull choices from ephemeris.py so new modes never break the CLI
+        sp.add_argument("--ayanamsa", choices=tuple(AYANAMSA_MODES.keys()), default="lahiri")
         sp.add_argument("--node", choices=("mean", "true"), default="mean")
         sp.add_argument(
         "--json",
@@ -208,7 +210,6 @@ def build_parser() -> argparse.ArgumentParser:
         )
         if with_number:
             sp.add_argument("--number", type=_horary_number_arg, required=True, help=f"KP horary number 1-{MAX_HORARY_NUMBER}")
-            
 
     sp = sub.add_parser("natal", help="complete KP birth chart")
     add_common(sp)
@@ -228,14 +229,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("ayanamsa", help="ayanamsa value on a date")
     sp.add_argument("--date", default=DateType.today().isoformat(), type=_date_arg, help="YYYY-MM-DD (default today)")
-    sp.add_argument("--ayanamsa", choices=("lahiri", "kp", "kp_old"), default="lahiri")
+    sp.add_argument("--ayanamsa", choices=tuple(AYANAMSA_MODES.keys()), default="lahiri")
     sp.set_defaults(func=cmd_ayanamsa)
 
     sp = sub.add_parser("download-ephemeris", help="download Swiss Ephemeris data files")
     sp.add_argument("--dir", default=None, help="target directory (default ~/.kpastro/ephe)")
     sp.set_defaults(func=cmd_download)
     return p
-
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
@@ -247,7 +247,6 @@ def main(argv: list[str] | None = None) -> int:
         # a clean usage message + exit code 2 instead of a traceback.
         parser.error(str(exc))
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
