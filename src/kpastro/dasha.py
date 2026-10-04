@@ -1,26 +1,16 @@
-"""Vimshottari Dasha.
+"""Vimshottari dasha: balances, timelines and active-period resolution.
 
-The mahadasha sequence is fixed: ``Ketu 7, Venus 20, Sun 6, Moon 10, Mars 7,
-Rahu 18, Jupiter 16, Saturn 19, Mercury 17`` (120 years total).
+Two anchoring conventions exist and must not be confused:
 
-The period running at birth is the mahadasha of the **star-lord** of the birth
-Moon.  Only the fraction of the nakshatra *not yet traversed* is lived as the
-balance of that period, and the full sequence then continues.
+* **Birth-anchored** (:func:`mahadasha_timeline`) - offsets are measured from
+  the birth moment; the opening mahadasha is the truncated *balance*.
+* **Absolute** (:func:`absolute_periods`, :func:`mahadasha_timeline_absolute`) -
+  the opening mahadasha keeps its full nominal length and simply starts
+  *before* birth (negative offset).  This is the convention KP Stellar uses
+  and the only one that resolves deep levels correctly for an arbitrary
+  query date.
 
-Balances are computed at **three nested levels**, each anchored to the birth
-Moon:
-
-.. math::
-
-    MD_{bal} = \\frac{star_{end} - Moon}{star} \\cdot Y_{star} \\cdot 365.25
-
-    AD_{bal} = \\frac{sub_{end} - Moon}{star} \\cdot Y_{star} \\cdot 365.25
-
-    PD_{bal} = \\frac{subsub_{end} - Moon}{star} \\cdot Y_{star} \\cdot 365.25
-
-where ``star`` is the 13°20' nakshatra span and the active sub / sub-sub lords
-are those of the birth Moon's longitude.  Every full sub-period afterwards has
-width ``Y_parent * Y_child / 120`` years (1 year = 365.25 days).
+All offsets are in days of 365.25 (the KP software convention).
 """
 
 from __future__ import annotations
@@ -51,6 +41,17 @@ DAYS_PER_YEAR: float = 365.25
 #: Days of one full Vimshottari cycle.
 CYCLE_DAYS: float = VIMSHOTTARI_TOTAL_YEARS * DAYS_PER_YEAR
 
+#: Canonical level names, index 0 == level 1.
+DASHA_LEVEL_NAMES: tuple[str, ...] = (
+    "Mahadasha",
+    "Antardasha",
+    "Pratyantardasha",
+    "Sookshma",
+    "Prana",
+    "Deha",
+    "Jeeva",
+    "Karma",
+)
 
 # ---------------------------------------------------------------------------
 # Data types
@@ -69,14 +70,13 @@ class Balance:
     nakshatra: str
     nakshatra_index: int
 
-
 @dataclass(frozen=True)
 class Period:
     """A dasha period with offsets measured in days from the epoch."""
     lord: str
     start_days: float
     end_days: float
-    level: int                      # 1 mahadasha, 2 antardasha, 3 pratyantar
+    level: int                      # 1 mahadasha, 2 antardasha, 3 pratyantar...
 
     @property
     def duration_days(self) -> float:
@@ -86,12 +86,22 @@ class Period:
     def duration_years(self) -> float:
         return self.duration_days / DAYS_PER_YEAR
 
+    @property
+    def level_name(self) -> str:
+        if 1 <= self.level <= len(DASHA_LEVEL_NAMES):
+            return DASHA_LEVEL_NAMES[self.level - 1]
+        return f"Level {self.level}"
+
     def as_datetimes(self, epoch: datetime) -> tuple[datetime, datetime]:
         return (
             epoch + timedelta(days=self.start_days),
             epoch + timedelta(days=self.end_days),
         )
 
+    def balance_days(self, instant: datetime, epoch: datetime) -> float:
+        """Days remaining in this period at ``instant`` (may be negative)."""
+        elapsed = (instant - epoch).total_seconds() / 86400.0
+        return self.end_days - elapsed
 
 def period_days(parent_lord: str, child_lord: str) -> float:
     """Full length (days) of a sub-period of ``parent_lord`` ruled by ``child_lord``."""
@@ -102,10 +112,8 @@ def period_days(parent_lord: str, child_lord: str) -> float:
         * DAYS_PER_YEAR
     )
 
-
 def mahadasha_days(lord: str) -> float:
     return VIMSHOTTARI_YEARS[lord] * DAYS_PER_YEAR
-
 
 # ---------------------------------------------------------------------------
 # Balance at birth
@@ -113,7 +121,13 @@ def mahadasha_days(lord: str) -> float:
 
 @lru_cache(maxsize=4096)
 def dasha_balance(moon_longitude: float) -> Balance:
-    """All nested balances from the sidereal birth Moon longitude (cached)."""
+    """All nested balances from the sidereal birth Moon longitude (cached).
+
+    Note on the AD/PD balance algebra: dividing the remaining arc by the full
+    nakshatra span and multiplying by the *mahadasha* years looks wrong, but is
+    exactly equivalent to dividing by the sub-span and multiplying by the
+    sub-period's own length, because ``sub_span == star_span * sub_years / 120``.
+    """
     moon_longitude = normalize_longitude(moon_longitude)
     idx = star_index(moon_longitude)
     star_start = idx * STAR_SPAN_DEG
@@ -139,9 +153,13 @@ def dasha_balance(moon_longitude: float) -> Balance:
         nakshatra_index=idx,
     )
 
+def md_elapsed_days(moon_longitude: float) -> float:
+    """Days already elapsed in the birth mahadasha at the birth moment."""
+    bal = dasha_balance(moon_longitude)
+    return mahadasha_days(bal.mahadasha_lord) - bal.mahadasha_days
 
 # ---------------------------------------------------------------------------
-# Sub-period generation
+# Sub-period generation (birth-anchored view)
 # ---------------------------------------------------------------------------
 
 def _subperiods(
@@ -173,21 +191,43 @@ def _subperiods(
         offset += dur
     return out
 
-
 def mahadasha_timeline(moon_longitude: float, epochs: int = 1) -> list[Period]:
-    """All mahadashas from birth (opening one is the balance) over cycles."""
+    """Birth-anchored mahadashas; the opening one is the truncated balance."""
     bal = dasha_balance(moon_longitude)
     periods: list[Period] = []
     offset = 0.0
     pos = bal.nakshatra_index % 9
-    for _ in range(epochs):
+    for cycle in range(epochs):
         for k in range(len(VIMSHOTTARI_ORDER)):
             lord = VIMSHOTTARI_ORDER[(pos + k) % 9]
-            dur = bal.mahadasha_days if (k == 0 and _ == 0 and lord == bal.mahadasha_lord) else mahadasha_days(lord)
+            is_opening = cycle == 0 and k == 0 and lord == bal.mahadasha_lord
+            dur = bal.mahadasha_days if is_opening else mahadasha_days(lord)
             periods.append(Period(lord, offset, offset + dur, 1))
             offset += dur
     return periods
 
+def mahadasha_timeline_absolute(
+    moon_longitude: float,
+    cycles: int = 2,
+) -> list[Period]:
+    """Absolute mahadashas: every period keeps its full nominal length.
+
+    Offsets are still measured from the birth epoch, so the opening mahadasha
+    has a **negative** ``start_days``.  This is the timeline KP Stellar displays
+    and the only correct base for resolving deep levels at an arbitrary date.
+    """
+    bal = dasha_balance(moon_longitude)
+    elapsed = mahadasha_days(bal.mahadasha_lord) - bal.mahadasha_days
+
+    periods: list[Period] = []
+    pos = VIMSHOTTARI_INDEX[bal.mahadasha_lord]
+    cursor = -elapsed
+    for k in range(9 * max(1, cycles)):
+        lord = VIMSHOTTARI_ORDER[(pos + k) % 9]
+        dur = mahadasha_days(lord)
+        periods.append(Period(lord, cursor, cursor + dur, 1))
+        cursor += dur
+    return periods
 
 def antardashas_of(period: Period, balance: Balance | None = None) -> list[Period]:
     """Antardashas inside a mahadasha.
@@ -205,8 +245,11 @@ def antardashas_of(period: Period, balance: Balance | None = None) -> list[Perio
         first_dur=balance.active_ad_days if partial else None,
     )
 
-
-def pratyantardashas_of(ad: Period, balance: Balance | None = None, md_is_partial: bool = False) -> list[Period]:
+def pratyantardashas_of(
+    ad: Period,
+    balance: Balance | None = None,
+    md_is_partial: bool = False,
+) -> list[Period]:
     """Pratyantardashas inside an antardasha (refined only for the birth AD)."""
     most_refined = balance is not None and md_is_partial and ad.start_days == 0
     return _subperiods(
@@ -217,12 +260,116 @@ def pratyantardashas_of(ad: Period, balance: Balance | None = None, md_is_partia
         first_dur=balance.active_pd_days if most_refined else None,
     )
 
+def sookshmas_of(pd_period: Period, level: int = 4) -> list[Period]:
+    """Sookshma (4th level) periods inside a pratyantardasha."""
+    return _subperiods(pd_period.lord, pd_period.duration_days, level)
+
+def pranas_of(sookshma: Period, level: int = 5) -> list[Period]:
+    """Prana (5th level) periods inside a sookshma."""
+    return _subperiods(sookshma.lord, sookshma.duration_days, level)
+
+def sub_periods_of(parent: Period, level: int | None = None) -> list[Period]:
+    """Generic child periods of ``parent`` (unrefined / absolute convention)."""
+    lvl = level if level is not None else parent.level + 1
+    return _subperiods(parent.lord, parent.duration_days, lvl)
+
+# ---------------------------------------------------------------------------
+# Active-period resolution
+# ---------------------------------------------------------------------------
 
 def _locate(periods: list[Period], offset_days: float) -> Period | None:
     for p in periods:
         if p.start_days <= offset_days < p.end_days:
             return p
     return None
+
+def _find_child(
+    parent_lord: str,
+    parent_start: float,
+    parent_duration: float,
+    target_days: float,
+    level: int,
+) -> Period:
+    """Walk the nine children of a parent and return the one holding ``target_days``.
+
+    Children always begin with the parent's own lord and each takes
+    ``parent_duration * years(child) / 120`` of the parent's span.  If the
+    target falls outside the parent (floating-point edge, or a query beyond the
+    generated range) the final child is returned rather than raising, so deep
+    stacks never explode on boundary input.
+    """
+    pos = VIMSHOTTARI_INDEX[parent_lord]
+    cursor = parent_start
+    last: Period | None = None
+    for k in range(9):
+        lord = VIMSHOTTARI_ORDER[(pos + k) % 9]
+        dur = parent_duration * VIMSHOTTARI_YEARS[lord] / VIMSHOTTARI_TOTAL_YEARS
+        last = Period(lord, cursor, cursor + dur, level)
+        if cursor <= target_days < cursor + dur:
+            return last
+        cursor += dur
+    assert last is not None
+    return last
+
+def absolute_periods(
+    moon_longitude: float,
+    epoch: datetime,
+    instant: datetime,
+    depth: int = 5,
+) -> list[Period]:
+    """Active MD/AD/PD/Sookshma/Prana... stack at ``instant``, levels 1..depth.
+
+    ``epoch`` is the birth moment (it fixes the mahadasha anchor via the birth
+    Moon); ``instant`` is the date the stack is resolved for.  Offsets in the
+    returned periods are days relative to ``epoch`` and may be negative.
+    """
+    if depth < 1:
+        raise ValueError("depth must be >= 1")
+
+    bal = dasha_balance(moon_longitude)
+    md_lord = bal.mahadasha_lord
+    md_total = mahadasha_days(md_lord)
+    elapsed = md_total - bal.mahadasha_days
+
+    target = (instant - epoch).total_seconds() / 86400.0
+
+    # -- level 1: walk full-length mahadashas from their absolute start ------
+    pos = VIMSHOTTARI_INDEX[md_lord]
+    cursor = -elapsed
+    if target < cursor:
+        cycles_needed = 1
+    else:
+        cycles_needed = int((target - cursor) // CYCLE_DAYS) + 2
+
+    md: Period | None = None
+    for k in range(9 * cycles_needed):
+        lord = VIMSHOTTARI_ORDER[(pos + k) % 9]
+        dur = mahadasha_days(lord)
+        if cursor <= target < cursor + dur:
+            md = Period(lord, cursor, cursor + dur, 1)
+            break
+        cursor += dur
+
+    if md is None:
+        # Query lies beyond the generated horizon; clamp to the opening MD.
+        md = Period(md_lord, -elapsed, -elapsed + md_total, 1)
+
+    periods: list[Period] = [md]
+
+    # -- levels 2..depth: recurse into the located parent --------------------
+    for level in range(2, depth + 1):
+        parent = periods[-1]
+        periods.append(
+            _find_child(
+                parent.lord,
+                parent.start_days,
+                parent.duration_days,
+                target,
+                level,
+            )
+        )
+
+    return periods
 
 
 def current_periods(
@@ -231,31 +378,29 @@ def current_periods(
     instant: datetime,
     depth: int = 3,
 ) -> dict[int, Period]:
-    """Active mahadasha (1), antardasha (2) and pratyantar (3) at ``instant``."""
-    days = (instant - epoch).total_seconds() / 86400.0
-    bal = dasha_balance(moon_longitude)
-    md = _locate(mahadasha_timeline(moon_longitude), days)
-    if md is None:
-        raise ValueError("instant is outside the mahadasha timeline")
-    result: dict[int, Period] = {1: md}
+    """Active periods keyed by level (1=MD, 2=AD, 3=PD, 4=Sookshma, 5=Prana).
 
-    ads = antardashas_of(md, bal)
-    ad = _locate(ads, days - md.start_days)
-    if ad is None:
-        raise ValueError("instant is outside the antardasha timeline")
-    result[2] = ad
+    ``epoch`` is the birth moment, ``instant`` the evaluation date.  Passing
+    ``epoch`` for both yields the birth stack, which is almost never what a
+    "current dasha" panel should show.
+    """
+    return {p.level: p for p in absolute_periods(moon_longitude, epoch, instant, depth)}
 
-    if depth >= 3:
-        pds = pratyantardashas_of(ad, bal, md_is_partial=md.start_days == 0)
-        pd = _locate(pds, days - md.start_days - ad.start_days)
-        if pd is not None:
-            result[3] = pd
-    return result
-
+def current_lords(
+    moon_longitude: float,
+    epoch: datetime,
+    instant: datetime,
+    depth: int = 5,
+) -> list[str]:
+    """Convenience: just the lord names of the active stack, MD first."""
+    return [p.lord for p in absolute_periods(moon_longitude, epoch, instant, depth)]
 
 def format_days(days: float) -> str:
     """Render days as ``Yy Mm Dd`` (year = 365.25 days, month = 30.4375 days)."""
+    negative = days < 0
+    days = abs(days)
     years, rem = divmod(days, 365.25)
     months, rem = divmod(rem, 365.25 / 12.0)
     days_f, _ = divmod(rem, 1.0)
-    return f"{int(years)}y {int(months)}m {days_f:.0f}d"
+    text = f"{int(years)}y {int(months)}m {days_f:.0f}d"
+    return f"-{text}" if negative else text
