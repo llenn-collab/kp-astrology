@@ -39,7 +39,7 @@ AYANAMSA_MODES: dict[str, int] = {
 }
 
 _KP_STELLAR_OFFSETS_DEG: dict[str, float] = {
-    "kp_stellar": 50.8 / 3600.0,
+    "kp": 50.7 / 3600.0  # Calibrated offset to match KP Stellar "KP New"
 }
 
 AYANAMSA_MODES["kp_stellar"] = AYANAMSA_MODES["kp"]
@@ -202,12 +202,10 @@ class SwissEphemeris:
     def ayanamsa(self, jd_ut: float) -> float:
         """Ayanamsa in degrees at the given Julian date (UT)."""
         self._set_sid_mode()
-
         val = float(swe.get_ayanamsa_ut(jd_ut))
-
-        # Calibrate selected ayanamsa modes against KP Stellar.
+        
+        # Apply calibration offset for KP Stellar parity
         val -= _KP_STELLAR_OFFSETS_DEG.get(self.ayanamsa_mode, 0.0)
-
         return val
 
     def _calc(self, jd_ut: float, body: int, with_speed: bool = True):
@@ -219,6 +217,21 @@ class SwissEphemeris:
         )
 
         arr, retflag = swe.calc_ut(jd_ut, body, flags)[:2]
+        return arr, retflag
+
+    def jd_et(self, dt: datetime) -> float:
+        """Julian date (Ephemeris Time / Terrestrial Time) for a naive-UTC datetime."""
+        secs = dt.second + dt.microsecond / 1_000_000.0
+        res = swe.utc_to_jd(
+            dt.year, dt.month, dt.day, dt.hour, dt.minute, secs, self._jd_ut_calendar(dt)
+        )
+        # pyswisseph returns (retval, jd_ut, jd_et) or (jd_ut, jd_et)
+        return res[2] if len(res) >= 3 else res[1]
+
+    def _calc(self, jd_et: float, body: int, with_speed: bool = True):
+        flags = swe.FLG_SWIEPH | (swe.FLG_SPEED if with_speed else 0)
+        # CRITICAL: Use swe.calc (Ephemeris Time) instead of swe.calc_ut (Universal Time)
+        arr, retflag = swe.calc(jd_et, body, flags)[:2]
         return arr, retflag
 
     def body(self, jd_ut: float, name: str) -> tuple[float, float]:
