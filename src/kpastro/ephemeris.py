@@ -38,6 +38,12 @@ AYANAMSA_MODES: dict[str, int] = {
     "kp_old": swe.SIDM_KRISHNAMURTI,              # 5  - Krishnamurti's table
 }
 
+_KP_STELLAR_OFFSETS_DEG: dict[str, float] = {
+    "kp_stellar": 50.8 / 3600.0,
+}
+
+AYANAMSA_MODES["kp_stellar"] = AYANAMSA_MODES["kp"]
+
 NODES: dict[str, int] = {"mean": swe.MEAN_NODE, "true": swe.TRUE_NODE}
 
 #: Sidereal mode last applied to the (process-global) Swiss Ephemeris engine.
@@ -196,7 +202,13 @@ class SwissEphemeris:
     def ayanamsa(self, jd_ut: float) -> float:
         """Ayanamsa in degrees at the given Julian date (UT)."""
         self._set_sid_mode()
-        return float(swe.get_ayanamsa_ut(jd_ut))
+
+        val = float(swe.get_ayanamsa_ut(jd_ut))
+
+        # Calibrate selected ayanamsa modes against KP Stellar.
+        val -= _KP_STELLAR_OFFSETS_DEG.get(self.ayanamsa_mode, 0.0)
+
+        return val
 
     def _calc(self, jd_ut: float, body: int, with_speed: bool = True):
         flags = (
