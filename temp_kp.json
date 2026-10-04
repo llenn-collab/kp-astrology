@@ -1,0 +1,507 @@
+{
+  "ayanamsa": "24°09'14.8\"",
+  "ayanamsa_mode": "kp",
+  "node": "mean",
+  "ascendant": "16°54'24.8\"",
+  "midheaven": "276°56'24.4\"",
+  "planets": {
+    "Sun": {
+      "sign": "Virgo",
+      "house": 6,
+      "degree": "16°15'04\"",
+      "sign_lord": "Mercury",
+      "star_lord": "Moon",
+      "sub_lord": "Saturn",
+      "sub_sub_lord": "Mercury",
+      "sublord_of_houses": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "extra_significator_houses": [],
+      "retrograde": false
+    },
+    "Moon": {
+      "sign": "Gemini",
+      "house": 3,
+      "degree": "16°51'51\"",
+      "sign_lord": "Mercury",
+      "star_lord": "Rahu",
+      "sub_lord": "Venus",
+      "sub_sub_lord": "Saturn",
+      "sublord_of_houses": [
+        3,
+        4,
+        10
+      ],
+      "extra_significator_houses": [
+        1,
+        11
+      ],
+      "retrograde": false
+    },
+    "Mars": {
+      "sign": "Cancer",
+      "house": 4,
+      "degree": "09°02'58\"",
+      "sign_lord": "Moon",
+      "star_lord": "Saturn",
+      "sub_lord": "Venus",
+      "sub_sub_lord": "Rahu",
+      "sublord_of_houses": [
+        1,
+        4,
+        8,
+        10,
+        11,
+        12
+      ],
+      "extra_significator_houses": [],
+      "retrograde": false
+    },
+    "Mercury": {
+      "sign": "Libra",
+      "house": 6,
+      "degree": "09°54'36\"",
+      "sign_lord": "Venus",
+      "star_lord": "Rahu",
+      "sub_lord": "Jupiter",
+      "sub_sub_lord": "Sun",
+      "sublord_of_houses": [
+        3,
+        6,
+        10
+      ],
+      "extra_significator_houses": [
+        4,
+        9,
+        10
+      ],
+      "retrograde": false
+    },
+    "Jupiter": {
+      "sign": "Cancer",
+      "house": 4,
+      "degree": "25°54'10\"",
+      "sign_lord": "Moon",
+      "star_lord": "Mercury",
+      "sub_lord": "Rahu",
+      "sub_sub_lord": "Moon",
+      "sublord_of_houses": [
+        3,
+        4,
+        6,
+        9,
+        12
+      ],
+      "extra_significator_houses": [
+        8
+      ],
+      "retrograde": false
+    },
+    "Venus": {
+      "sign": "Libra",
+      "house": 6,
+      "degree": "14°19'58\"",
+      "sign_lord": "Venus",
+      "star_lord": "Rahu",
+      "sub_lord": "Mercury",
+      "sub_sub_lord": "Saturn",
+      "sublord_of_houses": [
+        2,
+        6,
+        7,
+        10
+      ],
+      "extra_significator_houses": [
+        6,
+        7,
+        12
+      ],
+      "retrograde": true
+    },
+    "Saturn": {
+      "sign": "Pisces",
+      "house": 12,
+      "degree": "17°12'49\"",
+      "sign_lord": "Jupiter",
+      "star_lord": "Mercury",
+      "sub_lord": "Mercury",
+      "sub_sub_lord": "Venus",
+      "sublord_of_houses": [
+        3,
+        6,
+        10,
+        11,
+        12
+      ],
+      "extra_significator_houses": [
+        2,
+        3
+      ],
+      "retrograde": true
+    },
+    "Rahu": {
+      "sign": "Aquarius",
+      "house": 10,
+      "degree": "03°25'15\"",
+      "sign_lord": "Saturn",
+      "star_lord": "Mars",
+      "sub_lord": "Venus",
+      "sub_sub_lord": "Mars",
+      "sublord_of_houses": [
+        1,
+        4,
+        8,
+        10
+      ],
+      "extra_significator_houses": [
+        5
+      ],
+      "retrograde": true
+    },
+    "Ketu": {
+      "sign": "Leo",
+      "house": 4,
+      "degree": "03°25'15\"",
+      "sign_lord": "Sun",
+      "star_lord": "Ketu",
+      "sub_lord": "Sun",
+      "sub_sub_lord": "Saturn",
+      "sublord_of_houses": [
+        4
+      ],
+      "extra_significator_houses": [],
+      "retrograde": true
+    }
+  },
+  "cusps": {
+    "Ascendant": {
+      "sign": "Aries",
+      "degree": "16°54'25\"",
+      "sign_lord": "Mars",
+      "star_lord": "Venus",
+      "sub_lord": "Moon",
+      "sub_sub_lord": "Mercury",
+      "significators": {
+        "planets_in_star_of_planets_in_house": [],
+        "planets_in_house": [],
+        "planets_in_star_of_house_lord": [
+          "Rahu"
+        ],
+        "sign_lord": [
+          "Mars"
+        ]
+      }
+    },
+    "2": {
+      "sign": "Taurus",
+      "degree": "16°04'55\"",
+      "sign_lord": "Venus",
+      "star_lord": "Moon",
+      "sub_lord": "Saturn",
+      "sub_sub_lord": "Mercury",
+      "significators": {
+        "planets_in_star_of_planets_in_house": [],
+        "planets_in_house": [],
+        "planets_in_star_of_house_lord": [],
+        "sign_lord": [
+          "Venus"
+        ]
+      }
+    },
+    "3": {
+      "sign": "Gemini",
+      "degree": "11°29'20\"",
+      "sign_lord": "Mercury",
+      "star_lord": "Rahu",
+      "sub_lord": "Saturn",
+      "sub_sub_lord": "Venus",
+      "significators": {
+        "planets_in_star_of_planets_in_house": [
+          "Sun"
+        ],
+        "planets_in_house": [
+          "Moon"
+        ],
+        "planets_in_star_of_house_lord": [
+          "Jupiter",
+          "Saturn"
+        ],
+        "sign_lord": [
+          "Mercury"
+        ]
+      }
+    },
+    "4": {
+      "sign": "Cancer",
+      "degree": "06°56'24\"",
+      "sign_lord": "Moon",
+      "star_lord": "Saturn",
+      "sub_lord": "Mercury",
+      "sub_sub_lord": "Jupiter",
+      "significators": {
+        "planets_in_star_of_planets_in_house": [
+          "Rahu",
+          "Ketu"
+        ],
+        "planets_in_house": [
+          "Mars",
+          "Jupiter",
+          "Ketu"
+        ],
+        "planets_in_star_of_house_lord": [
+          "Sun"
+        ],
+        "sign_lord": [
+          "Moon"
+        ]
+      }
+    },
+    "5": {
+      "sign": "Leo",
+      "degree": "05°44'17\"",
+      "sign_lord": "Sun",
+      "star_lord": "Ketu",
+      "sub_lord": "Rahu",
+      "sub_sub_lord": "Rahu",
+      "significators": {
+        "planets_in_star_of_planets_in_house": [],
+        "planets_in_house": [],
+        "planets_in_star_of_house_lord": [],
+        "sign_lord": [
+          "Sun"
+        ]
+      }
+    },
+    "6": {
+      "sign": "Virgo",
+      "degree": "09°51'31\"",
+      "sign_lord": "Mercury",
+      "star_lord": "Sun",
+      "sub_lord": "Venus",
+      "sub_sub_lord": "Mercury",
+      "significators": {
+        "planets_in_star_of_planets_in_house": [
+          "Jupiter",
+          "Saturn"
+        ],
+        "planets_in_house": [
+          "Sun",
+          "Mercury",
+          "Venus"
+        ],
+        "planets_in_star_of_house_lord": [
+          "Jupiter",
+          "Saturn"
+        ],
+        "sign_lord": [
+          "Mercury"
+        ]
+      }
+    },
+    "7": {
+      "sign": "Libra",
+      "degree": "16°54'25\"",
+      "sign_lord": "Venus",
+      "star_lord": "Rahu",
+      "sub_lord": "Venus",
+      "sub_sub_lord": "Saturn",
+      "significators": {
+        "planets_in_star_of_planets_in_house": [],
+        "planets_in_house": [],
+        "planets_in_star_of_house_lord": [],
+        "sign_lord": [
+          "Venus"
+        ]
+      }
+    },
+    "8": {
+      "sign": "Scorpio",
+      "degree": "16°04'55\"",
+      "sign_lord": "Mars",
+      "star_lord": "Saturn",
+      "sub_lord": "Jupiter",
+      "sub_sub_lord": "Sun",
+      "significators": {
+        "planets_in_star_of_planets_in_house": [],
+        "planets_in_house": [],
+        "planets_in_star_of_house_lord": [
+          "Rahu"
+        ],
+        "sign_lord": [
+          "Mars"
+        ]
+      }
+    },
+    "9": {
+      "sign": "Sagittarius",
+      "degree": "11°29'20\"",
+      "sign_lord": "Jupiter",
+      "star_lord": "Ketu",
+      "sub_lord": "Mercury",
+      "sub_sub_lord": "Mercury",
+      "significators": {
+        "planets_in_star_of_planets_in_house": [],
+        "planets_in_house": [],
+        "planets_in_star_of_house_lord": [],
+        "sign_lord": [
+          "Jupiter"
+        ]
+      }
+    },
+    "10": {
+      "sign": "Capricorn",
+      "degree": "06°56'24\"",
+      "sign_lord": "Saturn",
+      "star_lord": "Sun",
+      "sub_lord": "Mercury",
+      "sub_sub_lord": "Saturn",
+      "significators": {
+        "planets_in_star_of_planets_in_house": [
+          "Moon",
+          "Mercury",
+          "Venus"
+        ],
+        "planets_in_house": [
+          "Rahu"
+        ],
+        "planets_in_star_of_house_lord": [
+          "Mars"
+        ],
+        "sign_lord": [
+          "Saturn"
+        ]
+      }
+    },
+    "11": {
+      "sign": "Aquarius",
+      "degree": "05°44'17\"",
+      "sign_lord": "Saturn",
+      "star_lord": "Mars",
+      "sub_lord": "Moon",
+      "sub_sub_lord": "Rahu",
+      "significators": {
+        "planets_in_star_of_planets_in_house": [],
+        "planets_in_house": [],
+        "planets_in_star_of_house_lord": [
+          "Mars"
+        ],
+        "sign_lord": [
+          "Saturn"
+        ]
+      }
+    },
+    "12": {
+      "sign": "Pisces",
+      "degree": "09°51'31\"",
+      "sign_lord": "Jupiter",
+      "star_lord": "Saturn",
+      "sub_lord": "Venus",
+      "sub_sub_lord": "Saturn",
+      "significators": {
+        "planets_in_star_of_planets_in_house": [
+          "Mars"
+        ],
+        "planets_in_house": [
+          "Saturn"
+        ],
+        "planets_in_star_of_house_lord": [],
+        "sign_lord": [
+          "Jupiter"
+        ]
+      }
+    }
+  },
+  "nodes": {
+    "Rahu": {
+      "houses": [
+        1,
+        3,
+        4,
+        6,
+        8,
+        10,
+        11,
+        12
+      ],
+      "planets": [
+        "Mars",
+        "Saturn"
+      ]
+    },
+    "Ketu": {
+      "houses": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "planets": [
+        "Ketu",
+        "Sun"
+      ]
+    }
+  },
+  "vimsottari_dasha": {
+    "current_stack": [
+      "Rahu",
+      "Venus",
+      "Saturn",
+      "Moon",
+      "Saturn"
+    ],
+    "levels": [
+      {
+        "level": "Mahadasha",
+        "lord": "Rahu",
+        "start_ut": "2012-12-27 09:07:28",
+        "end_ut": "2030-12-27 21:07:28",
+        "duration_days": 6574.5,
+        "balance_days": 1546.27
+      },
+      {
+        "level": "Antardasha",
+        "lord": "Venus",
+        "start_ut": "2024-07-16 00:25:28",
+        "end_ut": "2027-07-16 18:25:28",
+        "duration_days": 1095.75,
+        "balance_days": 286.16
+      },
+      {
+        "level": "Pratyantardasha",
+        "lord": "Saturn",
+        "start_ut": "2026-06-19 02:58:28",
+        "end_ut": "2026-12-09 14:49:28",
+        "duration_days": 173.49,
+        "balance_days": 67.01
+      },
+      {
+        "level": "Sookshma",
+        "lord": "Moon",
+        "start_ut": "2026-09-26 21:11:18",
+        "end_ut": "2026-10-11 08:10:33",
+        "duration_days": 14.46,
+        "balance_days": 7.73
+      },
+      {
+        "level": "Prana",
+        "lord": "Saturn",
+        "start_ut": "2026-10-03 00:39:28",
+        "end_ut": "2026-10-05 07:35:51",
+        "duration_days": 2.29,
+        "balance_days": 1.71
+      }
+    ]
+  },
+  "legend": {
+    "R": "Retrograde planet",
+    "planets_in_star_of_planets_in_house": "A: planets in the star of planets occupying the house",
+    "planets_in_house": "B: planets occupying the house",
+    "planets_in_star_of_house_lord": "C: planets in the star of the house sign-lord",
+    "sign_lord": "D: sign-lord of the house cusp",
+    "sublord_of_houses": "houses where the planet is a significator (A/B/C/D)",
+    "extra_significator_houses": "houses whose cusp sub-lord is the planet"
+  }
+}
