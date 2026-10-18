@@ -3,6 +3,7 @@ README.md
 pyproject.toml
 src/kpastro/__init__.py
 src/kpastro/__main__.py
+src/kpastro/arithmetic.py
 src/kpastro/chart.py
 src/kpastro/cli.py
 src/kpastro/constants.py
@@ -19,3 +20,4 @@ src/kpastro.egg-info/dependency_links.txt
 src/kpastro.egg-info/entry_points.txt
 src/kpastro.egg-info/requires.txt
 src/kpastro.egg-info/top_level.txt
+tests/test_precision.py
