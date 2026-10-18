@@ -98,6 +98,49 @@ class TestArithmeticExactness:
         assert A.MAS_PER_YEAR == 400_000
         assert A.STAR_SPAN_MAS % VIMSHOTTARI_TOTAL_YEARS == 0
 
+    # -- boundary policy: "just below a boundary belongs to the segment above"
+
+    @pytest.mark.parametrize("lon,expected", [
+        # The exact Krittika start (26 + 2/3 deg).  The nearest double is a few
+        # parts in 1e9 *below* 96,000,000 mas, so a plain floor lands a whole
+        # mas short of the edge and the 1/1000-mas forward-push cannot reach
+        # it -- the point used to resolve to Bharani/Venus.
+        (26.666666666666664, "Sun"),
+        # 1510/9 deg == 167d46'40" is *exactly* the Saturn -> Mercury sub edge
+        # of Hasta (Moon's star).  This is cusp 1 of kp_stellar_output.json,
+        # where KP Stellar prints sub-lord MER.  It used to come out Saturn.
+        (1510 / 9, "Mercury"),
+    ])
+    def test_boundary_float_resolves_to_following_segment(self, lon, expected):
+        """A double that lands on a segment edge belongs to the segment above.
+
+        Regression: ``vedic._mas`` floored to a whole mas before applying
+        ``BOUNDARY_TOL_MAS`` (1/1000 mas), so an exact-boundary float was
+        resolved to the *preceding* segment -- the opposite of the policy
+        documented in AGENTS.md and of KP Stellar's output.  A point genuinely
+        further below the edge than the tolerance must still resolve down.
+        """
+        assert V.sub_info(lon).lord == expected
+        assert V.sub_info(lon - 1e-6).lord != expected
+
+    def test_star_boundary_float_resolves_to_following_star(self):
+        assert V.star_index(26.666666666666664) == 2      # Krittika, not Bharani
+        assert V.star_lord(26.666666666666664) == "Sun"
+        assert V.star_index(26.666666666666664 - 1e-6) == 1
+
+    def test_interior_points_are_untouched_by_the_boundary_snap(self):
+        """Only points within BOUNDARY_TOL_MAS of an edge may move."""
+        rng = random.Random(20261030)
+        for _ in range(2000):
+            lon = rng.uniform(0.0, 360.0)
+            exact = Fraction(lon) * A.MAS_PER_DEG
+            frac_part = exact - math.floor(exact)
+            if frac_part > 1 - A.BOUNDARY_TOL_MAS:
+                continue        # a boundary float: the snap is intended here
+            assert V._mas(V.normalize_longitude(lon)) == Fraction(
+                math.floor(exact)
+            )
+
     @pytest.mark.parametrize("star_idx", range(27))
     def test_sub_divisions_tile_exactly(self, star_idx):
         subs = A.sub_divisions_mas(star_idx)

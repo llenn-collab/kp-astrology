@@ -6,9 +6,18 @@ import json
 
 from dataclasses import dataclass, field
 from datetime import date as DateType, datetime, timedelta, time as TimeType
-from typing import Any
+from typing import Any, Iterable, Optional
 
-from .constants import PLANET_ABBR
+from .constants import (
+    AYANAMSA_LABELS,
+    CUSP_NAMES,
+    KP_PLANET_ABBR,
+    KP_PLANET_ORDER,
+    PLANET_ABBR,
+    ROMAN,
+    SIGN_ABBR,
+    TZ_ZONE_NAMES,
+)
 from .dasha import (
     Balance,
     Period,
@@ -16,10 +25,24 @@ from .dasha import (
     current_periods,
     dasha_balance,
     format_days,
+    mahadasha_days,
     mahadasha_timeline,
     mahadasha_timeline_absolute,
 )
 from .ephemeris import SwissEphemeris
+from .horary import MAX_HORARY_NUMBER
+from .panchanga import (
+    day_lord,
+    dasha_balance_str,
+    balance_days_from_moon,
+    karana,
+    local_datetime,
+    nakshatra_pada,
+    nitya_yoga,
+    sunrise_sunset_clock,
+    tithi,
+)
+from .horary import cusps_from_horary_lagna
 from .significators import (
     Signification,
     cusp_sub_lords,
@@ -28,7 +51,7 @@ from .significators import (
     planet_significations,
     ruling_planets,
 )
-from .vedic import format_longitude, point_info
+from .vedic import format_longitude, normalize_longitude, point_info
 from .deep_dasha import deep_current_periods
 
 
@@ -123,6 +146,14 @@ class Chart:
     ruling: list = field(default_factory=list)
     #: UTC instant the dasha stack in ``current`` was resolved for.
     query_utc: datetime | None = None
+    #: Sidereal ascendant imposed by a KP horary number, when one was supplied.
+    #:
+    #: When set, ``cusps`` are the Placidus cusps belonging to *that* lagna,
+    #: while ``ascendant`` and ``ruling`` stay the astronomical ones for the
+    #: birth instant -- so ``cusps[0].longitude`` need not equal ``ascendant``.
+    #: That is what KP Stellar prints: a horary house frame over birth-time
+    #: planets and ruling planets.
+    horary_lagna: float | None = None
 
     @property
     def birth_utc(self) -> datetime:
@@ -141,6 +172,7 @@ def compute_chart(
     eph: SwissEphemeris | None = None,
     query_utc: datetime | None = None,
     house_latitude_model: str = "geocentric",
+    horary_lagna: float | None = None,
 ) -> Chart:
     """Compute every KP layer for a birth chart.
 
@@ -166,6 +198,14 @@ def compute_chart(
     ayan = eph.ayanamsa(jd)
     sider = eph.sidereal_positions(jd)
     cusps, asc, mc, armc = eph.houses(jd, birth.latitude, birth.longitude)
+    if horary_lagna is not None:
+        # A KP horary chart takes its lagna from the querent's number rather
+        # than from the clock, so its houses belong to that ascendant.  The
+        # planets, the astronomical ascendant and the ruling planets all stay
+        # on the birth data, exactly as KP Stellar reports them.
+        cusps = cusps_from_horary_lagna(
+            horary_lagna, eph, jd, birth.latitude, birth.longitude
+        )
 
     planets: list[PlanetPos] = []
     for name in ("Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn",
@@ -238,6 +278,7 @@ def compute_chart(
             for rp in ruling_planets(asc, moon_lon, birth.date.weekday())
         ],
         query_utc=instant_utc,
+        horary_lagna=None if horary_lagna is None else normalize_longitude(horary_lagna),
     )
     return chart
 
@@ -614,9 +655,297 @@ def render_chart_json(
     chart: Chart,
     dasha_depth: int = 5,
     query_utc: datetime | None = None,
+    schema: str = "stellar",
+    name: str = "KP Chart",
+    gender: str = "",
+    horary_no: Optional[int] = None,
+    timezone: Optional[str] = None,
 ) -> str:
-    """Serialize the KP Stellar-compatible chart dict to clean JSON text."""
-    payload = _strip_strings(
-        chart_to_kp_json(chart, dasha_depth=dasha_depth, query_utc=query_utc)
-    )
+    """Serialize the KP Stellar-compatible chart dict to clean JSON text.
+
+    ``schema="stellar"`` (the default) emits the KP Stellar printout layout --
+    ``birth_details`` / ``vimsottari_dasa`` / ``ruling_planets`` / ``planets``
+    / ``cusps`` / ``nodes_representation`` -- which is what
+    ``kp_stellar_output.json`` looks like.  ``schema="detailed"`` emits the
+    earlier long-form payload (full lord names, absolute Ascendant/MC,
+    UTC dasha stamps) that the rest of this library was validated against.
+    """
+    if schema == "stellar":
+        payload = chart_to_kp_stellar_json(
+            chart,
+            dasha_depth=dasha_depth,
+            query_utc=query_utc,
+            name=name,
+            gender=gender,
+            horary_no=horary_no,
+            timezone=timezone,
+        )
+    elif schema == "detailed":
+        payload = chart_to_kp_json(
+            chart, dasha_depth=dasha_depth, query_utc=query_utc
+        )
+    else:
+        raise ValueError(f"unknown JSON schema {schema!r}; use 'stellar' or 'detailed'")
+    payload = _strip_strings(payload)
     return json.dumps(payload, indent=2, ensure_ascii=False)
+
+
+# ---------------------------------------------------------------------------
+# JSON export — the KP Stellar printout schema (kp_stellar_output.json)
+# ---------------------------------------------------------------------------
+#
+# This is the schema the commercial KP Stellar app emits: three-letter planet
+# keys, ``sg``/``sl``/``sb``/``ss`` lord columns, house-cusp rows named
+# ``Asc``/``II``/.../``XII``, a ``birth_details`` panchanga header, and the
+# five Vimshottari levels spelled ``dasa``/``bhukti``/``antara``/``sookshma``/
+# ``prana``.  It is a *presentation* of the same ``Chart`` object; nothing here
+# recomputes a longitude.
+#
+# Two house-derived conventions are worth recording because they are not
+# obvious from the schema alone:
+#
+# * A planet's ``signifies`` list is emitted in the group order
+#   ``star-lord's occupied house, own house, houses the star-lord owns,
+#   houses the planet owns`` (deduplicated).  This reproduces 6 of the 9
+#   reference rows byte-for-byte; KP Stellar's own row order for the other
+#   three is not a function of anything in the chart and is not reproducible.
+#   The trailing parenthesised element, e.g. ``"(IV, VIII)"``, is the set of
+#   houses whose **cusp sub-lord** is that planet, printed in Roman numerals.
+# * The trailing ``nodes_representation`` block is the node's *star-lord* and
+#   the *lord of the sign the node occupies* (not the sign-lord of the cusp
+#   the node happens to sit in), together with the union of those two agents'
+#   significator houses.
+
+#: Vimshottari level -> the key KP Stellar uses in ``vimsottari_dasa``.
+_KP_DASHA_KEYS: tuple[str, ...] = (
+    "dasa", "bhukti", "antara", "sookshma", "prana", "deha", "jeeva", "karma",
+)
+
+
+def _kp_abbr(name: str) -> str:
+    """``"Jupiter"`` -> ``"JUP"`` (identity for anything unmapped)."""
+    return KP_PLANET_ABBR.get(name, name)
+
+
+def _kp_sorted(names: Iterable[str]) -> list[str]:
+    """Sort planet names into KP Stellar's fixed planet-table order."""
+    return sorted(
+        set(names),
+        key=lambda n: KP_PLANET_ORDER.index(n) if n in KP_PLANET_ORDER else 99,
+    )
+
+
+def _planet_flags(chart: Chart) -> dict[str, list[str]]:
+    """KP Stellar's per-planet flag list.
+
+    ``R`` = retrograde (main planets only; KP Stellar never marks the nodes),
+    ``#`` = the planet sits in its own star,
+    ``*`` = no planet at all occupies a nakshatra this planet rules.
+    """
+    star_lords = [p.star_lord for p in chart.planets]
+    flags: dict[str, list[str]] = {}
+    for p in chart.planets:
+        f: list[str] = []
+        if p.star_lord == p.name:
+            f.append("#")
+        if p.name not in star_lords:
+            f.append("*")
+        if p.retrograde and p.name not in ("Rahu", "Ketu"):
+            f.append("R")
+        flags[p.name] = f
+    return flags
+
+
+def _signifies_ordered(
+    chart: Chart, extra: dict[str, list[int]]
+) -> dict[str, list[str]]:
+    """KP Stellar ``signifies`` column: house numbers + a Roman-numeral extra."""
+    house_of_planet = {p.name: p.house for p in chart.planets}
+    star_lord = {p.name: p.star_lord for p in chart.planets}
+    cusp_sign_lord = {c.house: c.sign_lord for c in chart.cusps}
+
+    def owns(planet: str) -> list[int]:
+        return sorted(h for h, lord in cusp_sign_lord.items() if lord == planet)
+
+    out: dict[str, list[str]] = {}
+    for p in chart.planets:
+        sl = star_lord[p.name]
+        groups: list[list[int]] = [
+            [house_of_planet[sl]] if sl in house_of_planet else [],
+            [p.house],
+            owns(sl) if sl in cusp_sign_lord.values() else [],
+            owns(p.name),
+        ]
+        seen: list[int] = []
+        for group in groups:
+            for h in group:
+                if h not in seen:
+                    seen.append(h)
+        entry = [str(h) for h in seen]
+        if extra[p.name]:
+            entry.append("(" + ", ".join(ROMAN[h] for h in extra[p.name]) + ")")
+        out[p.name] = entry
+    return out
+
+
+def _dasha_balance_header(chart: Chart) -> str:
+    """``"RAH 15y 5m 26d"`` -- balance of the opening mahadasha at birth."""
+    moon_lon = chart.planet_lon["Moon"]
+    total = mahadasha_days(chart.balance.mahadasha_lord)
+    days = balance_days_from_moon(moon_lon, total)
+    return dasha_balance_str(_kp_abbr(chart.balance.mahadasha_lord), days)
+
+
+def _birth_details(
+    chart: Chart,
+    name: str,
+    gender: str,
+    horary_no: Optional[int],
+    timezone: Optional[str],
+) -> dict:
+    """The KP Stellar birth-details / panchanga header block."""
+    birth = chart.birth
+    tz = birth.tz_hours
+    # Local midnight of the birth day, expressed as a UT Julian date.  ``jd_ut``
+    # already carries the UTC offset, so only the local *clock* time comes off;
+    # subtracting ``tz`` again would land a whole offset earlier and return the
+    # previous day's sunrise.
+    seconds = (
+        birth.time.hour * 3600 + birth.time.minute * 60
+        + birth.time.second + birth.time.microsecond / 1e6
+    )
+    jd_midnight = chart.jd_ut - seconds / 86400.0
+    rise, sett = sunrise_sunset_clock(
+        jd_midnight, birth.latitude, birth.longitude, tz
+    )
+    sun_lon = chart.planet_lon["Sun"]
+    moon_lon = chart.planet_lon["Moon"]
+    star_name, _, pada = nakshatra_pada(moon_lon)
+    zone = timezone or TZ_ZONE_NAMES.get(tz, f"UTC{tz:+05.2f}".replace(".", ":"))
+    return {
+        "name": name,
+        "gender": gender,
+        "date": birth.date.strftime("%a %b %d %Y"),
+        "time": birth.time.strftime("%H:%M:%S"),
+        "horary_no": f"{horary_no} ({MAX_HORARY_NUMBER})" if horary_no else None,
+        "place": birth.place,
+        "latitude": birth.latitude,
+        "longitude": birth.longitude,
+        "timezone": zone,
+        "ayanamsa": f"{_deg_str(chart.ayanamsa)} ({AYANAMSA_LABELS.get(chart.ayanamsa_mode, chart.ayanamsa_mode)})",
+        "node": f"Using {chart.node.upper()} Node",
+        "sunrise": rise,
+        "sunset": sett,
+        "nakshatra": f"{star_name} ({pada})",
+        "tithi": tithi(sun_lon, moon_lon)[0],
+        "yoga": nitya_yoga(sun_lon, moon_lon)[0],
+        "karana": karana(sun_lon, moon_lon)[0],
+        "dasha_balance": _dasha_balance_header(chart),
+    }
+
+
+def chart_to_kp_stellar_json(
+    chart: Chart,
+    dasha_depth: int = 5,
+    query_utc: datetime | None = None,
+    name: str = "KP Chart",
+    gender: str = "",
+    horary_no: Optional[int] = None,
+    timezone: Optional[str] = None,
+) -> dict:
+    """Render ``chart`` in the KP Stellar printout schema.
+
+    ``query_utc`` is the instant the Vimshottari stack is resolved for (KP
+    Stellar resolves it at the moment of the query, not at birth).  All
+    ``vimsottari_dasa`` end stamps are rendered in the chart's **local** time,
+    as KP Stellar does.
+    """
+    sig_map = _kp_significator_map(chart)
+    extra = _cusp_sublord_houses(chart)
+    signifies = _signifies_ordered(chart, extra)
+    flags = _planet_flags(chart)
+    nodes = _node_agency(chart, _planet_significator_houses(chart, sig_map))
+
+    planets: dict[str, dict] = {}
+    for pname in KP_PLANET_ORDER:
+        p = next(x for x in chart.planets if x.name == pname)
+        planets[_kp_abbr(pname)] = {
+            "sign": SIGN_ABBR[p.sign],
+            "house": p.house,
+            "degree": _deg_str(p.sign_degree),
+            "sg": _kp_abbr(p.sign_lord),
+            "sl": _kp_abbr(p.star_lord),
+            "sb": _kp_abbr(p.sub_lord),
+            "ss": _kp_abbr(p.sub_sub_lord),
+            "signifies": signifies[pname],
+            "flags": flags[pname],
+        }
+
+    cusps: dict[str, dict] = {}
+    for c in chart.cusps:
+        cats = sig_map[c.house]
+        cusps[str(c.house)] = {
+            "name": CUSP_NAMES[c.house - 1],
+            "sign": SIGN_ABBR[c.sign],
+            "degree": _deg_str(c.longitude % 30.0),
+            "sg": _kp_abbr(c.sign_lord),
+            "sl": _kp_abbr(c.star_lord),
+            "sb": _kp_abbr(c.sub_lord),
+            "ss": _kp_abbr(c.sub_sub_lord),
+            "signifies_A_B_C_D": [
+                [_kp_abbr(n) for n in _kp_sorted(cats["planets_in_star_of_planets_in_house"])],
+                [_kp_abbr(n) for n in _kp_sorted(cats["planets_in_house"])],
+                [_kp_abbr(n) for n in _kp_sorted(cats["planets_in_star_of_house_lord"])],
+                [_kp_abbr(n) for n in _kp_sorted(cats["sign_lord"])],
+            ],
+        }
+
+    moon_info = point_info(chart.planet_lon["Moon"])
+    asc_info = point_info(chart.ascendant)
+    tz = chart.birth.tz_hours
+    instant = query_utc or chart.effective_query_utc
+    periods = deep_current_periods(
+        chart.planet_lon["Moon"], chart.birth.utc_datetime(),
+        depth=dasha_depth, query_utc=instant,
+    )
+    dasha: dict[str, dict] = {}
+    for i, p in enumerate(periods):
+        key = _KP_DASHA_KEYS[i] if i < len(_KP_DASHA_KEYS) else f"level{i + 1}"
+        dasha[key] = {
+            "lord": _kp_abbr(p.lord),
+            "end": local_datetime(p.end, tz).strftime("%d/%b/%Y %H:%M:%S"),
+        }
+
+    return {
+        "birth_details": _birth_details(chart, name, gender, horary_no, timezone),
+        "vimsottari_dasa": dasha,
+        "ruling_planets": {
+            "lagna": {"sign": _kp_abbr(asc_info.sign_lord), "stl": _kp_abbr(asc_info.star_lord)},
+            "moon": {"sign": _kp_abbr(moon_info.sign_lord), "stl": _kp_abbr(moon_info.star_lord)},
+            "day_lord": _kp_abbr(day_lord(chart.birth.date)),
+            "nodes": None,
+        },
+        "planets": planets,
+        "cusps": cusps,
+        "nodes_representation": {
+            _kp_abbr(k): {"houses": v["houses"], "planets": [_kp_abbr(p) for p in v["planets"]]}
+            for k, v in nodes.items()
+        },
+        "legend": {
+            "sg": "Sign",
+            "sl": "Star Lord",
+            "sb": "Sub Lord",
+            "ss": "Sub Sub Lord",
+            "flags": {
+                "R": "Retrograde",
+                "#": "Planet in self star",
+                "*": "Has no planet in its star",
+            },
+            "signifies_A_B_C_D": [
+                "A: Planets in star of planets in house",
+                "B: Planet in the house",
+                "C: Planet in star of house-lord",
+                "D: Sign-lord",
+            ],
+        },
+    }

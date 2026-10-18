@@ -30,6 +30,7 @@ from .chart import (  # noqa: F401
 from .horary import (  # noqa: F401
     HoraryDiv,
     ascendant_from_kp_number,
+    cusps_from_horary_lagna,
     kp_divisions,
     kp_number_for_longitude,
 )
@@ -88,6 +89,7 @@ __all__ = [
     "compute_chart",
     "credible_interval",
     "current_periods",
+    "cusps_from_horary_lagna",
     "dasha_balance",
     "download_ephemeris",
     "ephemeris_version",

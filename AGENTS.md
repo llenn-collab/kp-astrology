@@ -20,7 +20,11 @@ Long-term goal: agree with a designated **KP Stellar** reference (see
 - `vedic.py` — star/sub/sub-sub derivation (no ephemeris; pure longitude math)
 - `ephemeris.py` — pyswisseph wrapper: ayanamsa, positions, Placidus cusps, download
 - `dasha.py` / `deep_dasha.py` — Vimshottari balances and nested period stacks
-- `chart.py` — `BirthInfo`, `compute_chart`, text renderers, `chart_to_kp_json`
+- `panchanga.py` — sunrise/sunset, tithi, nitya yoga, karana, nakshatra+pada,
+  day lord, and the `dasha_balance` header string
+- `chart.py` — `BirthInfo`, `compute_chart`, text renderers,
+  `chart_to_kp_json` (kpastro long-form) and `chart_to_kp_stellar_json`
+  (KP Stellar printout schema; the default for `natal --json`)
 - `significators.py`, `horary.py`, `rectification.py` — higher KP layers
 - `cli.py` — argparse subcommands: `natal horary dasha rulings ayanamsa download-ephemeris`
 
@@ -59,9 +63,10 @@ actual ~48%). This is pre-existing, not something you broke:
   month=30.4375d); test expects a `1y 0m` prefix.
 
 Do **not** change calculation code to make these pass. If a task is not about
-these tests, use `--no-cov` and treat the 102 passing tests as the signal.
-Coverage is thin in `rectification.py`, `significators.py`, `cli.py`,
-`chart.py` (all < 50%).
+these tests, use `--no-cov` and treat the *passing* tests as the signal. On
+CPython 3.11 `test_kahan_sum_beats_naive` passes, so the baseline there is
+4 failures rather than 5. Coverage is thin in `rectification.py`,
+`significators.py`, `cli.py`, `chart.py` (all < 50%).
 
 ## Ephemeris files
 
@@ -85,6 +90,13 @@ Coverage is thin in `rectification.py`, `significators.py`, `cli.py`,
   byte-identical edges. Do not reintroduce float degree arithmetic here.
 - **Boundary policy**: `BOUNDARY_TOL_MAS = 1/1000` mas (≡ the historical 1e-9°
   forward-push) — a position just below a boundary belongs to the segment above.
+  `vedic._mas` therefore has to snap *up* when the exact value is within that
+  tolerance of the next integer mas; flooring to a whole mas first throws away
+  up to 1 mas, which is a thousand times the push, and silently sends exact
+  boundaries to the **preceding** segment. That was a real bug: `26.666…`°
+  (`= 96 000 000` mas, the Krittika start) resolved to Bharani/Venus, and
+  `1510/9`° (`= 604 000 000` mas, the Saturn→Mercury sub edge of Hasta — and
+  cusp 1 of `kp_stellar_output.json`) resolved to Saturn.
 - **Dasha year** = 365.25 days (`dasha.DAYS_PER_YEAR`); sub span = years/120 × 800'.
 - **Ayanamsa**: `lahiri` (default), `kp`, `kp_old`, and `kp_new`. `kp_new` is
   `kp` (VP291) plus a fixed `_AYANAMSA_OFFSETS_DEG = 50.7/3600`, calibrated
@@ -96,6 +108,22 @@ Coverage is thin in `rectification.py`, `significators.py`, `cli.py`,
   the Ascendant by ~2' at 19°N (MC barely moves).
 - **Nodes**: `mean` by default (KP convention); `true` optional. Rahu/Ketu are
   always flagged retrograde.
+- **Horary lagna — two different points, both needed.** A KP horary chart takes
+  its *lagna* from the querent's number rather than from the clock, so its
+  house cusps belong to that ascendant. The two layers disagree on which point
+  of the division that is, and the difference is deliberate:
+  - `horary.ascendant_from_kp_number(n)` returns the division **midpoint**
+    (public API, used by the `horary` subcommand).
+  - `horary.cusps_from_horary_lagna(...)` solves the instant whose Placidus
+    ascendant equals the longitude it is given and returns that instant's
+    twelve cusps. `compute_chart(..., horary_lagna=...)` and
+    `natal --horary-no N` feed it division N's **cusp** (`start_deg`), which is
+    what KP Stellar does: `kp_stellar_output.json`'s `cusps.1` is exactly
+    `1510/9`° = the cusp of division 117, and no division's midpoint.
+  With a horary lagna set, `chart.cusps[0].longitude != chart.ascendant` on
+  purpose: the houses are horary, while `ascendant`, `midheaven` and `ruling`
+  stay astronomical. KP Stellar reports the same split — its
+  `ruling_planets.lagna` is the birth ascendant, not its own `cusps.1`.
 - **Global engine state**: pyswisseph is process-global. `_set_sid_mode` caches
   the applied sidereal mode behind a module-level lock. Concurrent or
   interleaved charts relying on different ayanamsas must go through this path.
@@ -103,12 +131,24 @@ Coverage is thin in `rectification.py`, `significators.py`, `cli.py`,
   `query_utc`, defaulting to birth. `cmd_natal` passes `datetime.utcnow()`.
   Passing birth for both always yields the birth stack (a past bug).
 
-## KP Stellar compatibility (future work)
+## KP Stellar compatibility
 
 KP Stellar reference outputs exist in the repo as committed artifacts:
 `temp_kp.json` (mode `kp`), `temp_kp_test2.json` and `temp_kp_test3.json`
-(mode `kp_new`), `temp_final.md` (text render). `chart_to_kp_json` /
-`render_chart_json` emit the Stellar-aligned schema.
+(mode `kp_new`), `temp_final.md` (text render), and `kp_stellar_output.json`
+(a full printout-schema export; see `KP_STELLAR_RECONCILIATION.md`).
+
+Two emitters, do not conflate them: `chart_to_kp_stellar_json` emits the KP
+Stellar printout schema (`birth_details` / `vimsottari_dasa` / `ruling_planets`
+/ `planets` / `cusps` / `nodes_representation` / `legend`) and is what
+`natal --json` uses; `chart_to_kp_json` emits kpastro's own long-form payload
+and is reachable as `--json-schema detailed`.
+
+**Read the reference's `horary_no` before anything else.** If it is non-empty
+the reference's `cusps` block is a *horary* frame — cast from that division's
+cusp — while its planets and ruling planets are on the birth data. Casting
+houses from the birth instant instead will disagree by a whole sign and no
+ayanamsa, node, latitude or house-system change will close it.
 
 When reconciling with a supplied KP Stellar reference:
 

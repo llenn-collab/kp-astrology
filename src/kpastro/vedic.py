@@ -118,18 +118,31 @@ def _mas(lon_deg: float) -> "int | Fraction":
     """Quantise an input longitude to the exact-mas space (single edge point).
 
     Floor (truncate) rather than round: the legacy pipeline compared raw
-    floats against float boundaries, resolving points at sub-mas precision.
-    Flooring keeps every interior point and every exact boundary float in the
-    same segment the legacy forward-push policy chose (boundary floats such as
-    ``26.666666666666664``, whose exact value is a hair below 96,000,000 mas,
-    floor *below* the integer edge and therefore stay with the following
-    segment via the tolerance push — rounding would snap them onto the edge
-    and assign them a segment early).
+    floats against float boundaries, resolving points at sub-mas precision,
+    and flooring keeps every interior point in the segment it belongs to.
+
+    One correction to the plain floor.  A *boundary* float -- e.g.
+    ``26.666666666666664``, whose exact double value is
+    ``95999999.9999999915`` mas, a few parts in 1e9 below the 96,000,000 mas
+    Krittika edge -- floors a **whole mas** short of the edge.  The
+    forward-push in :func:`sub_info` and friends is only
+    :data:`~kpastro.arithmetic.BOUNDARY_TOL_MAS` = 1/1000 mas wide, so it
+    cannot bridge that gap and the point would resolve to the *preceding*
+    segment, which is the exact opposite of the documented boundary policy
+    ("a position just below a boundary belongs to the segment above") and of
+    what KP Stellar prints.  Snapping up whenever the exact value sits within
+    ``BOUNDARY_TOL_MAS`` of the next integer mas closes that hole while still
+    leaving every genuine interior point -- and every point more than a
+    thousandth of a mas below an edge -- exactly where the floor put it.
 
     Input must already be folded into [0, 360); use :func:`_probe_mas` for
     arbitrary inputs.
     """
-    return Fraction(math.floor(Fraction(lon_deg) * MAS_PER_DEG))
+    exact = Fraction(lon_deg) * MAS_PER_DEG
+    floored = math.floor(exact)
+    if exact - floored > 1 - BOUNDARY_TOL_MAS:
+        floored += 1
+    return Fraction(floored)
 
 
 def _probe_mas(lon_deg: float) -> "int | Fraction":

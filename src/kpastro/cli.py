@@ -20,7 +20,7 @@ from . import __version__
 from .chart import BirthInfo, compute_chart, render_chart, render_chart_json
 from .dasha import mahadasha_timeline
 from .ephemeris import AYANAMSA_MODES, SwissEphemeris, download_ephemeris
-from .horary import MAX_HORARY_NUMBER, ascendant_from_kp_number
+from .horary import MAX_HORARY_NUMBER, ascendant_from_kp_number, kp_divisions
 from .significators import ruling_planets
 from .vedic import format_longitude
 from .deep_dasha import deep_current_periods
@@ -46,6 +46,39 @@ def _horary_number_arg(arg: str) -> int:
         )
     return value
 
+def _horary_no_arg(arg: str) -> int:
+    """Validate a KP horary number (1-249)."""
+    try:
+        number = int(arg)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"invalid --horary-no {arg!r}; expected an integer 1-{MAX_HORARY_NUMBER}"
+        )
+    if not 1 <= number <= MAX_HORARY_NUMBER:
+        raise argparse.ArgumentTypeError(
+            f"--horary-no must be within 1-{MAX_HORARY_NUMBER}"
+        )
+    return number
+
+
+def _query_utc_arg(arg: str) -> datetime:
+    """Parse ``--query-utc``: the UTC instant the dasha stack resolves at.
+
+    Without this the "current" Vimshottari stack is resolved at
+    ``datetime.utcnow()``, which makes the two deepest levels (Sookshma lasts
+    ~5 d, Prana ~14 h) change underneath you -- so any comparison against a
+    reference printout needs the instant that reference was taken at pinned.
+    """
+    text = arg.strip()
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+    raise argparse.ArgumentTypeError(
+        f"invalid --query-utc {arg!r}; use 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS' (UTC)"
+    )
+
 def _parse_time(arg: str) -> TimeType:
     parts = arg.split(":")
     if len(parts) == 2:
@@ -65,17 +98,39 @@ def cmd_natal(args: argparse.Namespace) -> int:
         tz_hours=args.tz,
         place=args.place,
     )
-    # KP Stellar resolves the "current" dasha stack at the time of query, not birth.
-    query_time = datetime.utcnow()
+    # KP Stellar resolves the "current" dasha stack at the time of query, not
+    # birth.  --query-utc pins that instant so a reference printout can be
+    # reproduced exactly; without it we use "now".
+    query_time = getattr(args, "query_utc", None) or datetime.utcnow()
+    # A KP horary number fixes the *lagna*: the house cusps are cast for the
+    # cusp of that division of the zodiac, while the planets and the ruling
+    # planets stay on the birth data.  That is how KP Stellar reports a chart
+    # carrying a horary number, and it is why its cusps need not agree with
+    # the astronomical ascendant it also prints.
+    horary_no = getattr(args, "horary_no", None)
+    horary_lagna = (
+        None if horary_no is None
+        else kp_divisions()[horary_no - 1].start_deg
+    )
     chart = compute_chart(
         birth, 
         ayanamsa=args.ayanamsa, 
         node=args.node,
         query_utc=query_time,
+        horary_lagna=horary_lagna,
     )
     depth = getattr(args, "dasha_depth", 5)
     if getattr(args, "json", False):
-        print(render_chart_json(chart, dasha_depth=depth, query_utc=query_time))
+        print(render_chart_json(
+            chart,
+            dasha_depth=depth,
+            query_utc=query_time,
+            schema=getattr(args, "json_schema", "stellar"),
+            name=getattr(args, "name", "") or "KP Chart",
+            gender=getattr(args, "gender", "") or "",
+            horary_no=getattr(args, "horary_no", None),
+            timezone=getattr(args, "timezone", None),
+        ))
     else:
         print(render_chart(chart, dasha_depth=depth))
     return 0
@@ -201,6 +256,35 @@ def build_parser() -> argparse.ArgumentParser:
         "--json",
         action="store_true",
         help="emit KP Stellar-compatible JSON",
+        )
+        sp.add_argument(
+        "--json-schema",
+        choices=("stellar", "detailed"),
+        default="stellar",
+        help="JSON layout for --json: 'stellar' = KP Stellar printout schema "
+             "(default), 'detailed' = kpastro long-form schema",
+        )
+        sp.add_argument(
+        "--query-utc",
+        type=_query_utc_arg,
+        default=None,
+        help="UTC instant the 'current' Vimshottari stack resolves at "
+             "(default: now).  Pin this to reproduce a reference printout.",
+        )
+        sp.add_argument("--name", default="", help="chart subject name (birth_details)")
+        sp.add_argument("--gender", default="", help="chart subject gender (birth_details)")
+        sp.add_argument(
+        "--horary-no",
+        type=_horary_no_arg,
+        default=None,
+        help="KP horary number (1-249): casts the house cusps from the cusp "
+             "of that division, as KP Stellar does, and records it in "
+             "birth_details as 'N (249)'",
+        )
+        sp.add_argument(
+        "--timezone",
+        default=None,
+        help="IANA zone label for birth_details (default: derived from --tz)",
         )
         sp.add_argument(
         "--dasha-depth",

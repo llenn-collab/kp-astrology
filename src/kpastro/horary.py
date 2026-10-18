@@ -136,3 +136,114 @@ def kp_number_for_longitude(lon: float) -> int:
     starts = _division_starts()
     idx = bisect_right(starts, lon) - 1
     return max(idx, 0) + 1
+
+def cusps_from_horary_lagna(
+    lagna_deg: float,
+    eph,
+    jd_ref: float,
+    latitude: float,
+    longitude: float,
+    *,
+    tol_deg: float = 1e-12,
+    scan_steps: int = 960,
+) -> list[float]:
+    """The sidereal Placidus cusps whose ascendant equals ``lagna_deg``.
+
+    A KP horary chart takes its *lagna* from the querent's number, not from the
+    clock, so its house cusps are the Placidus cusps at whatever local sidereal
+    time yields that ascendant for the observer's latitude.  The ascendant
+    sweeps 360 degrees once per sidereal day and increases strictly through it,
+    so exactly one such instant falls in the sidereal day ending at ``jd_ref``;
+    it is bracketed by a coarse scan (which unwraps the 360 -> 0 discontinuity)
+    and then bisected.
+
+    The returned list is twelve ascending sidereal longitudes in KP house order.
+    ``lagna_deg`` is a sidereal longitude; ``latitude`` / ``longitude`` are the
+    geographic ones the caller uses for houses.
+
+    Args:
+        lagna_deg: target sidereal ascendant, degrees in [0, 360).
+        eph: :class:`~kpastro.ephemeris.Ephemeris` already configured with the
+            chart's ayanamsa and node mode.
+        jd_ref: Julian day UT near the moment the horary chart is being cast
+            for; the instant solved for is the latest one at or before it.
+        latitude: geographic latitude in degrees.
+        longitude: geographic longitude in degrees, east positive.
+        tol_deg: bisection tolerance on the ascendant.
+        scan_steps: coarse samples across the sidereal day.
+
+    Returns:
+        Twelve sidereal house cusp longitudes.
+
+    Raises:
+        ValueError: if no instant in the searched day produces the ascendant
+            (which can happen beyond the polar circles, where the ascendant is
+            not monotonic in sidereal time).
+    """
+    day = 0.9972695663  # mean sidereal day in solar days
+    lo_jd = jd_ref - day
+
+    def asc_at(jd: float) -> float:
+        return eph.houses(jd, latitude, longitude)[1]
+
+    # Coarse scan, unwrapping so the target can be bracketed even across 0 deg.
+    jds = [lo_jd + day * i / scan_steps for i in range(scan_steps + 1)]
+    asc = [asc_at(j) for j in jds]
+    unwrapped = [asc[0]]
+    for a in asc[1:]:
+        prev = unwrapped[-1]
+        delta = a - prev
+        while delta < -180.0:
+            delta += 360.0
+        while delta > 180.0:
+            delta -= 360.0
+        unwrapped.append(prev + delta)
+    span = unwrapped[-1] - unwrapped[0]
+    if span <= 0.0:
+        raise ValueError(
+            f"cannot solve the horary ascendant at latitude {latitude:g}"
+        )
+
+    # Express the target on the unwrapped scale, then take the last crossing.
+    target = lagna_deg
+    while target < unwrapped[0]:
+        target += 360.0
+    while target > unwrapped[-1]:
+        target -= 360.0
+    idx = None
+    for i in range(scan_steps):
+        if unwrapped[i] <= target <= unwrapped[i + 1]:
+            idx = i
+    if idx is None:
+        raise ValueError(
+            f"no instant within a sidereal day of jd {jd_ref:.6f} puts the "
+            f"ascendant at {lagna_deg:.9f} deg"
+        )
+
+    a, b = jds[idx], jds[idx + 1]
+    asc_a = asc_at(a)
+    ua = unwrapped[idx]  # ascendant at ``a``, on the unwrapped scale
+    for _ in range(200):
+        m = 0.5 * (a + b)
+        asc_m = asc_at(m)
+        # Re-unwrap the midpoint against the current lower bracket endpoint.
+        d = asc_m - asc_a
+        while d < -180.0:
+            d += 360.0
+        while d > 180.0:
+            d -= 360.0
+        um = ua + d
+        if um <= target:
+            a, asc_a, ua = m, asc_m, um
+        else:
+            b = m
+        if b - a < 1e-11 or abs(um - target) < tol_deg:
+            break
+    out = list(eph.houses(0.5 * (a + b), latitude, longitude)[0])
+    # The horary lagna is exact by construction (a division cusp is an exact
+    # rational longitude), so report it verbatim instead of the numerically
+    # solved ascendant.  Left a hair below the target, a cusp sitting exactly
+    # on a sub-lord boundary resolves to the wrong side of it.
+    out[0] = normalize_longitude(lagna_deg)
+    out[6] = normalize_longitude(lagna_deg + 180.0)
+    return out
