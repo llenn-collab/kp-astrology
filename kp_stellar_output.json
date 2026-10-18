@@ -1,12 +1,23 @@
 {
   "birth_details": {
-    "name": "KP_stellar_output",
+    "name": "KPstellaroutput",
     "gender": "Male",
-    "datetime": "30-Oct-2026, 12:00:00",
+    "date": "Fri Oct 30 2026",
+    "time": "12:00:00",
+    "horary_no": "117 (249)",
     "place": "Pune, India",
-    "coordinates": [18.4593067, 73.8654709],
-    "horary_range": "1 - 249",
-    "horary_number": 117
+    "latitude": 18.4593067,
+    "longitude": 73.8654709,
+    "timezone": "Asia/Kolkata",
+    "ayanamsa": "24°08'28\" (KP New)",
+    "node": "Using MEAN Node",
+    "sunrise": "06:36:48",
+    "sunset": "17:59:22",
+    "nakshatra": "Ardra (1)",
+    "tithi": "Krishna Panchami",
+    "yoga": "Siva",
+    "karana": "Taitula",
+    "dasha_balance": "RAH 15y 5m 26d"
   },
   "vimsottari_dasa": {
     "dasa": { "lord": "RAH", "end": "24/Apr/2042 23:47:34" },
