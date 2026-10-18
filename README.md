@@ -97,7 +97,10 @@ Other subcommands: `dasha`, `rulings`. Run `python -m kpastro --help` for all op
 
 ```python
 from datetime import date, time
-from kpastro import BirthInfo, compute_chart, render_chart, ascendant_from_kp_number
+from kpastro import (
+    BirthInfo, compute_chart, render_chart,
+    kp_divisions, ascendant_from_kp_number, cusps_from_horary_lagna,
+)
 
 birth = BirthInfo(
     date=date(1990, 1, 15), time=time(14, 30),
@@ -110,6 +113,22 @@ print(render_chart(chart))
 # KP horary: all 249 divisions, or the ascendant for one number
 divs = kp_divisions()                 # list of 249 HoraryDiv
 q = ascendant_from_kp_number(45)      # dict with ascendant + lord chain
+
+# A horary chart takes its lagna from the number, not from the clock, so its
+# house cusps belong to that ascendant.  KP Stellar uses the division's cusp
+# (`start_deg`); `ascendant_from_kp_number` returns its midpoint.
+horary = compute_chart(
+    birth, ayanamsa="kp_new",
+    horary_lagna=divs[116].start_deg,   # -> horary.horary_lagna, horary.cusps
+)
+
+# The same twelve sidereal cusps straight from the horary layer, if you want
+# them without building a whole chart.
+from kpastro import SwissEphemeris
+with SwissEphemeris(ayanamsa="kp_new") as eph:
+    cusps = cusps_from_horary_lagna(
+        divs[116].start_deg, eph, horary.jd_ut, 28.6139, 77.2090,
+    )
 ```
 
 `chart.planets`, `chart.cusps`, `chart.balance`, `chart.mahadashas`, `chart.current`,
