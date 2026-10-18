@@ -69,8 +69,13 @@ BIRTH_DATE = (2026, 10, 30)
 BIRTH_TIME = (12, 0, 0)
 QUERY_UTC = datetime(2026, 10, 18, 12, 0, 0)
 
-#: The horary number in the reference's ``birth_details.horary_no``.
+#: The horary number in the reference's ``horary_details.horary_no``.
 HORARY_NUMBER = 117
+
+#: The canonical reference section name.  Git commit ``8b369ad`` renamed the
+#: committed reference's ``birth_details`` key to ``horary_details`` without
+#: touching any value, so the serializer and tests follow the reference.
+DETAILS_SECTION = "horary_details"
 
 SIGN_ABBR_LIST = (
     "ARI", "TAU", "GEM", "CAN", "LEO", "VIR", "LIB", "SCO", "SAG", "CAP", "AQU", "PIS",
@@ -106,7 +111,7 @@ def eph() -> SwissEphemeris:
 @pytest.fixture(scope="module")
 def horary_lagna(reference) -> float:
     """The lagna KP Stellar used: the cusp of horary division 117."""
-    recorded = int(reference["birth_details"]["horary_no"].split()[0])
+    recorded = int(reference[DETAILS_SECTION]["horary_no"].split()[0])
     assert recorded == HORARY_NUMBER
     return kp_divisions()[HORARY_NUMBER - 1].start_deg
 
@@ -160,7 +165,7 @@ def test_schema_top_level_keys_match(reference, output):
 
 
 def test_schema_nested_keys_match(reference, output):
-    for section in ("birth_details", "ruling_planets", "legend"):
+    for section in (DETAILS_SECTION, "ruling_planets", "legend"):
         assert list(output[section]) == list(reference[section]), section
     assert list(output["planets"]) == list(reference["planets"])
     assert list(output["cusps"]) == list(reference["cusps"])
@@ -175,19 +180,63 @@ def test_schema_nested_keys_match(reference, output):
 # Everything that does NOT depend on the house cusps
 # ---------------------------------------------------------------------------
 
-def test_birth_details_header(reference, output):
-    ref, got = reference["birth_details"], output["birth_details"]
+def test_details_header_matches(reference, output):
+    ref, got = reference[DETAILS_SECTION], output[DETAILS_SECTION]
     for field in ("name", "gender", "date", "time", "horary_no", "place",
                   "latitude", "longitude", "timezone", "ayanamsa", "node",
                   "nakshatra", "tithi", "yoga", "karana", "dasha_balance"):
         assert got[field] == ref[field], f"{field}: {got[field]!r} != {ref[field]!r}"
 
 
+def test_no_birth_details_key_in_strict_payload(reference, output):
+    """The strict reference payload must not also emit ``birth_details``.
+
+    The reference has exactly one details section (``horary_details``); emitting
+    a legacy alias alongside it would break raw top-level key equality.
+    """
+    assert "birth_details" not in output
+    assert list(output) == list(reference)
+
+
+def test_chart_instant_resolves_to_2026_10_30_0630_utc():
+    """The canonical chart instant: 2026-10-30 12:00:00 IST == 06:30:00 UTC."""
+    birth = BirthInfo(
+        date=datetime(*BIRTH_DATE).date(),
+        time=datetime(2000, 1, 1, *BIRTH_TIME).time(),
+        latitude=LAT, longitude=LON, tz_hours=TZ, place="Pune, India",
+    )
+    assert birth.utc_datetime() == datetime(2026, 10, 30, 6, 30, 0)
+
+
+def test_horary_division_117_cusp_start_is_1510_over_9():
+    """Division 117's start is exactly 1510/9 deg; its midpoint is not."""
+    div = kp_divisions()[HORARY_NUMBER - 1]
+    assert div.start_deg == pytest.approx(1510.0 / 9.0, abs=1e-12)
+    assert div.mid_deg != pytest.approx(div.start_deg, abs=1e-6)
+
+
+def test_dasha_stack_is_deterministic_for_pinned_query_utc(eph, horary_lagna):
+    """Two evaluations at the pinned instant agree; no machine-clock use."""
+    def build():
+        birth = BirthInfo(
+            date=datetime(*BIRTH_DATE).date(),
+            time=datetime(2000, 1, 1, *BIRTH_TIME).time(),
+            latitude=LAT, longitude=LON, tz_hours=TZ, place="Pune, India",
+        )
+        chart = compute_chart(birth, ayanamsa="kp_new", node="mean", eph=eph,
+                              query_utc=QUERY_UTC, horary_lagna=horary_lagna)
+        return chart_to_kp_stellar_json(
+            chart, dasha_depth=5, query_utc=QUERY_UTC, name="KPstellaroutput",
+            gender="Male", horary_no=HORARY_NUMBER, timezone="Asia/Kolkata",
+        )["vimsottari_dasa"]
+    assert build() == build()
+
+
 def test_sunrise_sunset_within_a_minute(reference, output):
     """Sunrise/sunset agree to ~8 s; the residual is KP Stellar's solar theory."""
     for field in ("sunrise", "sunset"):
-        got = output["birth_details"][field]
-        want = reference["birth_details"][field]
+        got = output[DETAILS_SECTION][field]
+        want = reference[DETAILS_SECTION][field]
         delta = abs(
             datetime.strptime(got, "%H:%M:%S") - datetime.strptime(want, "%H:%M:%S")
         ).total_seconds()

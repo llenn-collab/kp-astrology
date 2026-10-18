@@ -664,7 +664,7 @@ def render_chart_json(
     """Serialize the KP Stellar-compatible chart dict to clean JSON text.
 
     ``schema="stellar"`` (the default) emits the KP Stellar printout layout --
-    ``birth_details`` / ``vimsottari_dasa`` / ``ruling_planets`` / ``planets``
+    ``horary_details`` / ``vimsottari_dasa`` / ``ruling_planets`` / ``planets``
     / ``cusps`` / ``nodes_representation`` -- which is what
     ``kp_stellar_output.json`` looks like.  ``schema="detailed"`` emits the
     earlier long-form payload (full lord names, absolute Ascendant/MC,
@@ -696,7 +696,7 @@ def render_chart_json(
 #
 # This is the schema the commercial KP Stellar app emits: three-letter planet
 # keys, ``sg``/``sl``/``sb``/``ss`` lord columns, house-cusp rows named
-# ``Asc``/``II``/.../``XII``, a ``birth_details`` panchanga header, and the
+# ``Asc``/``II``/.../``XII``, a ``horary_details`` panchanga header, and the
 # five Vimshottari levels spelled ``dasa``/``bhukti``/``antara``/``sookshma``/
 # ``prana``.  It is a *presentation* of the same ``Chart`` object; nothing here
 # recomputes a longitude.
@@ -796,7 +796,7 @@ def _dasha_balance_header(chart: Chart) -> str:
     return dasha_balance_str(_kp_abbr(chart.balance.mahadasha_lord), days)
 
 
-def _birth_details(
+def _horary_details(
     chart: Chart,
     name: str,
     gender: str,
@@ -917,7 +917,7 @@ def chart_to_kp_stellar_json(
         }
 
     return {
-        "birth_details": _birth_details(chart, name, gender, horary_no, timezone),
+        "horary_details": _horary_details(chart, name, gender, horary_no, timezone),
         "vimsottari_dasa": dasha,
         "ruling_planets": {
             "lagna": {"sign": _kp_abbr(asc_info.sign_lord), "stl": _kp_abbr(asc_info.star_lord)},

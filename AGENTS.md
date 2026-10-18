@@ -113,11 +113,13 @@ CPython 3.11 `test_kahan_sum_beats_naive` passes, so the baseline there is
   house cusps belong to that ascendant. The two layers disagree on which point
   of the division that is, and the difference is deliberate:
   - `horary.ascendant_from_kp_number(n)` returns the division **midpoint**
-    (public API, used by the `horary` subcommand).
+    (public API; still used for the `horary` subcommand's text-mode span/lord
+    line, but no longer for its house frame).
   - `horary.cusps_from_horary_lagna(...)` solves the instant whose Placidus
     ascendant equals the longitude it is given and returns that instant's
-    twelve cusps. `compute_chart(..., horary_lagna=...)` and
-    `natal --horary-no N` feed it division N's **cusp** (`start_deg`), which is
+    twelve cusps. `compute_chart(..., horary_lagna=...)` and both
+    `natal --horary-no N` and `horary --number N` feed it division N's
+    **cusp** (`start_deg`), which is
     what KP Stellar does: `kp_stellar_output.json`'s `cusps.1` is exactly
     `1510/9`° = the cusp of division 117, and no division's midpoint.
   With a horary lagna set, `chart.cusps[0].longitude != chart.ascendant` on
@@ -139,7 +141,7 @@ KP Stellar reference outputs exist in the repo as committed artifacts:
 (a full printout-schema export; see `KP_STELLAR_RECONCILIATION.md`).
 
 Two emitters, do not conflate them: `chart_to_kp_stellar_json` emits the KP
-Stellar printout schema (`birth_details` / `vimsottari_dasa` / `ruling_planets`
+Stellar printout schema (`horary_details` / `vimsottari_dasa` / `ruling_planets`
 / `planets` / `cusps` / `nodes_representation` / `legend`) and is what
 `natal --json` uses; `chart_to_kp_json` emits kpastro's own long-form payload
 and is reachable as `--json-schema detailed`.

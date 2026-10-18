@@ -136,7 +136,24 @@ def cmd_natal(args: argparse.Namespace) -> int:
     return 0
 
 def cmd_horary(args: argparse.Namespace) -> int:
-    q = ascendant_from_kp_number(args.number)
+    """KP horary (Prashna) chart.
+
+    Two lagnas, exactly as KP Stellar reports them:
+
+    * the **horary lagna** — the cusp of the querent's division — fixes the
+      house frame, so ``cusps`` and every house-derived field belong to it;
+    * the **astronomical ascendant** of the query instant still drives the
+      ruling planets and the planetary positions.
+
+    ``--json`` emits the KP Stellar printout schema through the same
+    serializer ``natal`` uses, so both interfaces agree.  ``--query-utc`` pins
+    the instant the Vimshottari stack resolves at (default: the query moment).
+    """
+    number = args.number
+    # The house frame is cast from the division's *cusp*, the convention the
+    # reference printout uses -- not from ``ascendant_from_kp_number``'s
+    # midpoint, which stays available as public API.
+    horary_lagna = kp_divisions()[number - 1].start_deg
     birth = BirthInfo(
         date=args.date,
         time=args.time,
@@ -145,27 +162,43 @@ def cmd_horary(args: argparse.Namespace) -> int:
         tz_hours=args.tz,
         place=args.place,
     )
-    # For horary, the query time IS the birth time.
-    query_time = birth.utc_datetime()
+    # KP Stellar resolves the dasha stack at the time of query, not birth.
+    query_time = getattr(args, "query_utc", None) or birth.utc_datetime()
     chart = compute_chart(
-        birth, 
-        ayanamsa=args.ayanamsa, 
+        birth,
+        ayanamsa=args.ayanamsa,
         node=args.node,
         query_utc=query_time,
+        horary_lagna=horary_lagna,
     )
+    depth = getattr(args, "dasha_depth", 5)
+    if getattr(args, "json", False):
+        print(render_chart_json(
+            chart,
+            dasha_depth=depth,
+            query_utc=query_time,
+            schema=getattr(args, "json_schema", "stellar"),
+            name=getattr(args, "name", "") or "KP Chart",
+            gender=getattr(args, "gender", "") or "",
+            horary_no=number,
+            timezone=getattr(args, "timezone", None),
+        ))
+        return 0
+
+    q = ascendant_from_kp_number(number)
     print("=" * 72)
     print(" KRISHNAMURTI PADDHATI - horary (Prashna)")
     print("=" * 72)
     print(f" KP number : {q['number']}")
     print(f" span      : {format_longitude(q['span'][0])} - {format_longitude(q['span'][1])}")
     print(
-        f" Ascendant : {format_longitude(q['ascendant'])} {q['sign']} - "
+        f" Ascendant : {format_longitude(horary_lagna)} {q['sign']} - "
         f"sign-lord {q['sign_lord']}, star {q['star']} ({q['star_lord']}), "
         f"sub {q['sub_lord']}, sub-sub {q['sub_sub_lord']}"
     )
     print("")
     print(" Moment chart (planets & Placidus cusps for the query instant):")
-    print(render_chart(chart, dasha_depth=args.dasha_depth))
+    print(render_chart(chart, dasha_depth=depth))
     return 0
 
 def cmd_dasha(args: argparse.Namespace) -> int:
@@ -271,20 +304,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="UTC instant the 'current' Vimshottari stack resolves at "
              "(default: now).  Pin this to reproduce a reference printout.",
         )
-        sp.add_argument("--name", default="", help="chart subject name (birth_details)")
-        sp.add_argument("--gender", default="", help="chart subject gender (birth_details)")
+        sp.add_argument("--name", default="", help="chart subject name (horary_details)")
+        sp.add_argument("--gender", default="", help="chart subject gender (horary_details)")
         sp.add_argument(
         "--horary-no",
         type=_horary_no_arg,
         default=None,
         help="KP horary number (1-249): casts the house cusps from the cusp "
              "of that division, as KP Stellar does, and records it in "
-             "birth_details as 'N (249)'",
+             "horary_details as 'N (249)'",
         )
         sp.add_argument(
         "--timezone",
         default=None,
-        help="IANA zone label for birth_details (default: derived from --tz)",
+        help="IANA zone label for horary_details (default: derived from --tz)",
         )
         sp.add_argument(
         "--dasha-depth",

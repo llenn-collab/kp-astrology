@@ -129,3 +129,51 @@ def test_solution_is_the_latest_one_before_the_reference_instant(eph, jd_ut):
     assert late != early
     assert late[0] == early[0] == lagna  # same lagna, different houses
     assert late[9] != early[9]
+
+
+# ---------------------------------------------------------------------------
+# The `horary` subcommand must agree with the `natal --horary-no` path
+# ---------------------------------------------------------------------------
+
+def test_horary_subcommand_json_reproduces_the_reference_house_frame(capsys):
+    """``horary --number 117 --json`` casts the horary cusp frame and emits
+    the KP Stellar schema, not the astronomical-ascendant frame.
+
+    Regression for the bug where ``cmd_horary`` printed the division midpoint
+    and called ``compute_chart`` without ``horary_lagna``, so its planets and
+    cusps belonged to the query-instant ascendant (Sagittarius) instead of the
+    horary cusp 1 (Virgo 1510/9 deg).
+    """
+    import json as _json
+    from kpastro.cli import main
+
+    rc = main([
+        "horary",
+        "--number", "117",
+        "--date", "2026-10-30", "--time", "12:00:00", "--tz", "5.5",
+        "--lat", "18.4593067", "--lon", "73.8654709", "--place", "Pune, India",
+        "--ayanamsa", "kp_new", "--node", "mean",
+        "--json", "--name", "KPstellaroutput", "--gender", "Male",
+        "--timezone", "Asia/Kolkata",
+        "--query-utc", "2026-10-18 12:00:00",
+    ])
+    assert rc == 0
+    payload = _json.loads(capsys.readouterr().out)
+
+    # KP Stellar printout schema, with the horary section named as the
+    # committed reference names it.
+    assert list(payload)[:2] == ["horary_details", "vimsottari_dasa"]
+    assert "birth_details" not in payload
+    assert payload["horary_details"]["horary_no"] == "117 (249)"
+
+    # House 1 is the *cusp* of division 117 (1510/9 deg, Virgo), not its
+    # midpoint and not the astronomical ascendant.
+    div = kp_divisions()[116]
+    cusp1 = payload["cusps"]["1"]
+    assert cusp1["sign"] == "VIR"
+    assert cusp1["degree"] == "17°46'40\""
+    assert div.start_deg == pytest.approx(1510.0 / 9.0, abs=1e-12)
+    assert cusp1["degree"] != f"{div.mid_deg:.0f}"  # sanity: not the midpoint
+
+    # The astronomical ascendant still drives the ruling planets.
+    assert payload["ruling_planets"]["lagna"] == {"sign": "JUP", "stl": "VEN"}

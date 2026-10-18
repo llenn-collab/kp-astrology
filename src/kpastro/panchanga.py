@@ -69,7 +69,7 @@ def sunrise_sunset(
     """Julian dates (UT) of the sunrise and sunset of the local day of ``jd_ut``.
 
     ``jd_ut`` must be **local midnight of that day expressed in UT** (that is
-    what :func:`kpastro.chart._birth_details` passes).  Returns
+    what :func:`kpastro.chart._horary_details` passes).  Returns
     ``(None, None)`` in the polar day/night cases where no event exists.
 
     ``swe.rise_trans`` returns the *first* event at or after the search

@@ -52,7 +52,7 @@ both planets and cusps match exactly.
 
 ## 1. The reference is a horary chart, and says so in its own header
 
-`birth_details.horary_no` is `"117 (249)"`. KP Stellar was asked for a *horary*
+`horary_details.horary_no` is `"117 (249)"`. KP Stellar was asked for a *horary*
 chart, so its house cusps are cast from horary division 117's **cusp** while
 its planets, ruling planets, panchanga and Vimshottari all stay on the birth
 data. That single fact explains everything that looked like a contradiction:
@@ -90,7 +90,7 @@ The two conventions are documented side by side in `AGENTS.md`.
 
 ## 2. What matches exactly
 
-* `birth_details`: name, gender, date, time, horary_no, place, latitude,
+* `horary_details`: name, gender, date, time, horary_no, place, latitude,
   longitude, timezone, `ayanamsa` (`24°08'28" (KP New)`), node, `nakshatra`
   (`Ardra (1)`), `tithi` (`Krishna Panchami`), `yoga` (`Siva`), `karana`
   (`Taitula`), `dasha_balance` (`RAH 15y 5m 26d`).
@@ -138,8 +138,8 @@ difference seen through an 18-year Rahu mahadasha
 ## 4. The remaining 24 differences, in full
 
 ```
-/birth_details/sunrise                    06:36:48  vs  06:36:56   (+8 s)
-/birth_details/sunset                     17:59:22  vs  17:59:15   (-7 s)
+/horary_details/sunrise                  06:36:48  vs  06:36:56   (+8 s)
+/horary_details/sunset                   17:59:22  vs  17:59:15   (-7 s)
 /vimsottari_dasa/{5 levels}/end           constant +2 h 58 m 58 s          §3
 /planets/{9 planets}/degree               +1.5" .. +10.1"                  §3
 /planets/{SUN,MOO,VEN}/signifies          row order only
@@ -179,10 +179,14 @@ behind a set comparison.
    a lagna but nothing cast houses from one. See §1.
 2. **`--json` did not emit the KP Stellar schema at all.** `chart_to_kp_json`
    emitted a kpastro-specific long-form payload (full lord names, an
-   `Ascendant` cusp key, UTC dasha stamps, no `birth_details`), despite
+   `Ascendant` cusp key, UTC dasha stamps, no details/panchanga section at
+   all), despite
    `AGENTS.md` describing it as "the Stellar-aligned schema". Added
    `chart_to_kp_stellar_json` plus `--json-schema {stellar,detailed}`;
    `stellar` is the default and the old payload is still reachable.
+   The printout's details section is named **`horary_details`**, matching the
+   committed reference (git commit `8b369ad` renamed it from `birth_details`
+   with all values unchanged); the serializer and tests follow the reference.
 3. **No panchanga layer existed.** New `kpastro/panchanga.py`: sunrise/sunset,
    tithi, nitya yoga, karana, nakshatra + pada, day-lord, and the
    `dasha_balance` header string. All five match the reference.
