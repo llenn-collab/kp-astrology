@@ -72,7 +72,7 @@ AYANAMSA_MODES["kp_new"] = swe.SIDM_KRISHNAMURTI_VP291
 #: arcsecond per century.  Re-verify against a second epoch before treating
 #: this as permanent.
 _AYANAMSA_OFFSETS_DEG: dict[str, float] = {
-    "kp_new": 50.7 / 3600.0,
+    "kp_new": 49.58 / 3600.0,
 }
 
 NODES: dict[str, int] = {"mean": swe.MEAN_NODE, "true": swe.TRUE_NODE}
@@ -291,7 +291,10 @@ class SwissEphemeris:
         return value - _AYANAMSA_OFFSETS_DEG.get(self.ayanamsa_mode, 0.0)
 
     def _calc(self, jd_ut: float, body: int, with_speed: bool = True):
-        flags = swe.FLG_SWIEPH | (swe.FLG_SPEED if with_speed else 0)
+        # KP Stellar's bodies follow Swiss' own sidereal path: apparent
+        # position minus the nutation-inclusive ayanamsa, i.e. mean-equinox
+        # longitude minus the *mean* ayanamsa -> FLG_NONUT + mean ayanamsa.
+        flags = swe.FLG_SWIEPH | swe.FLG_NONUT | (swe.FLG_SPEED if with_speed else 0)
         arr, retflag = swe.calc_ut(jd_ut, body, flags)[:2]
         return arr, retflag
 

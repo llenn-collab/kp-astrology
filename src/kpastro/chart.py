@@ -432,17 +432,11 @@ def render_chart(chart: Chart, dasha_depth: int = 5) -> str:
 
 def _deg_str(lon: float) -> str:
     """Format longitude as DD°MM'SS" with zero padding."""
-    lon = lon % 360.0
-    d = int(lon)
-    rem = (lon - d) * 60.0
-    m = int(rem)
-    s = round((rem - m) * 60.0)
-    if s == 60:
-        s = 0
-        m += 1
-    if m == 60:
-        m = 0
-        d = (d + 1) % 360
+    # KP Stellar TRUNCATES (floor) to whole arcseconds -- verified on two
+    # reference printouts (planets, cusps, ayanamsa).
+    total = int(((lon % 360.0) * 3600.0) + 1e-6) % 1296000
+    d, rem = divmod(total, 3600)
+    m, s = divmod(rem, 60)
     return f"{d:02d}\u00b0{m:02d}'{s:02d}\""
 
 

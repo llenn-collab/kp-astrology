@@ -84,7 +84,8 @@ def sunrise_sunset(
     ``(longitude, latitude, elevation)`` order -- the reverse of the
     ``(lat, lon)`` order used everywhere else in this library.
     """
-    geo = (longitude, latitude, elevation)
+    from .ephemeris import geocentric_latitude
+    geo = (longitude, geocentric_latitude(latitude), elevation)
     flags = swe.BIT_DISC_CENTER | swe.BIT_NO_REFRACTION
     out = []
     for event, backoff in ((swe.CALC_RISE, 0.5), (swe.CALC_SET, 0.2)):
@@ -101,7 +102,7 @@ def _jd_to_clock(jd_ut: Optional[float], tz_hours: float) -> Optional[str]:
     year, month, day, hour = swe.revjul(jd_ut + tz_hours / 24.0)
     hh = int(hour)
     mm = int((hour - hh) * 60.0)
-    ss = int(round((((hour - hh) * 60.0) - mm) * 60.0))
+    ss = int((((hour - hh) * 60.0) - mm) * 60.0 + 1e-6)   # KP Stellar truncates seconds
     if ss == 60:                      # 23:59:59.6 must not render as ...:60
         ss = 0
         mm += 1
