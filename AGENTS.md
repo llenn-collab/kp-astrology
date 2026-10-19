@@ -154,26 +154,33 @@ KP Stellar printout (any date/place, same schema) is still needed to confirm
 the open conventions below.
 
 Current state against `kp_stellar_output.json` (pinned command in
-`KP_STELLAR_DIFF.md`): **304 of 322 leaves exact**; the 18 residuals are
-recorded as strict xfails in `tests/test_kp_stellar_strict.py`:
+`KP_STELLAR_DIFF.md`): **315 of 322 leaves exact**; the 7 residuals are
+recorded as strict xfails in `tests/test_kp_stellar_strict.py`. Four
+independent references now exist — set 1 (2026-10-30, Pune, horary 117),
+set 4 (2024-06-01, Sholapur, horary 57), set 5 (same instant, Delhi) and
+set 6 (+90 min, horary 69) — re-measured by
+`python diagnositics/kp_new_alignment.py`.
 
-- 9 planetary degrees +1.53″ (Moon) … +10.13″ — **convention unknown**.
-  Leading hypothesis: kpastro subtracts the *mean* ayanamsa
-  (`swe.get_ayanamsa_ut`) from *apparent* longitudes, while Swiss Ephemeris's
-  sidereal path subtracts the nutation-inclusive value (Δψ ≈ 8.04″ at the
-  reference epoch, −0.56″ at the 2024-12-18 `kp_new` calibration epoch).
-  Removing nutation fixes the seven non-Moon bodies (+1.2…+2.1″) but moves
-  the Moon to −6.5″, while the dasha implies the reference Moon is ours
-  −0.907″. No documented convention brings all nine within 2″.
-- 5 dasha end stamps: constant **+2 h 58 m 58 s** (reference later). Dasha
-  sensitivity to the sidereal Moon is ≈ **3.29 h per arcsecond** in a Rahu
-  mahadasha; the offset ≙ a Moon residual of −0.907″. No documented Moon
-  convention reproduces it.
-- sunrise/sunset +8 s/−7 s (no documented atmosphere/refraction matches);
-  cusps 3/9 +0.88″ (no documented `houses` option moves cusp 3 alone).
-- The truncation-vs-half-up **display rule is unresolved**: truncation
-  explains cusps 3/9 and the dasha-consistent Moon; half-up explains cusps
-  2/8/6/12 and the printed ayanamsa.
+- **Install the full ephemeris files** (`python -m kpastro
+  download-ephemeris`). Without them Swiss falls back to Moshier and every
+  planet is ~9–10″ out, sunrise/sunset drift by 8 s, and the tests skip. With
+  them, all nine planetary degrees and sunrise/sunset are exact.
+- **The Moon carries an empirical calibration**: `+6.26784″ +
+  0.0022545″/day` after 2024-06-01 (≈ +0.82″/year), applied for `kp_new`
+  only. It is measured from the Vimshottari end stamps (one arcsecond of
+  Moon = 11,834 s in a Rahu mahadasha, 12,491.55 s in a Saturn mahadasha),
+  not fitted to the printed degrees. No documented Swiss Ephemeris flag
+  reproduces it; `_MOON_CORRECTION_ENABLED = False` restores the raw Moon.
+  See the Addendum B of `KP_STELLAR_RECONCILIATION.md`.
+- Remaining 7 leaves: cusps 2/8 print 1″ low (true residual 0.09″), and the
+  five dasha end stamps are 4 s early — 0.34 mas, below one step of the
+  exact-mas balance grid.
+- **The ayanamsa zero point drifts by epoch**: the planet-print windows are
+  49.52–49.61″ in Oct 2026 but 49.97–50.25″ in Jun 2024, i.e. ≈ −0.20″/year
+  against `SIDM_KRISHNAMURTI_VP291`. `kp_new` deliberately keeps the single
+  value **49.58″** (the 2026 optimum, consistent with the reference's own
+  printed ayanamsa at both epochs); the cost is that three or four planets in
+  the 2024 sets print 1″ low.
 - Signifies **row order is fixed** by the `*`-flag rule (a planet no planet
   sits in the star of flips its group pairs and sorts first in cusp tiers) —
   stated and measured in `diagnositics/findings_signifies.md`, pinned in

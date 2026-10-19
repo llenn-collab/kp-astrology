@@ -21,16 +21,17 @@ Vimshottari all stay on the birth data.  That is why:
 ``compute_chart(..., horary_lagna=...)``.  What still differs, and is pinned
 down here rather than hidden:
 
-* nine planetary degrees, +1.5" .. +10.1" -- convention unknown; the leading
-  hypothesis is nutation (kpastro mixes apparent longitudes with a mean
-  ayanamsa), but no documented convention reproduces all nine;
-* all five Vimshottari end stamps, a *constant* 2 h 58 m 58 s -- same
-  durations, epoch shifted by the ~0.91" Moon residual implied by the dasha;
-* sunrise/sunset, 8 s and 7 s -- no documented refraction/atmosphere setting
-  reproduces both;
-* cusps 3 and 9, 1" -- no documented Swiss Ephemeris option moves cusp 3
-  alone; whether the reference truncates or truncates-inconsistently is
-  unresolved (see ``diagnositics/findings_cusp_sunrise.md``).
+* sun, sunrise and sunset are now exact, and all nine planets land on the
+  reference's printed arcsecond: the mean-equinox/mean-ayanamsa convention
+  reproduces KP Stellar once the empirical Moon calibration in
+  ``kpastro.ephemeris`` is applied (see ``KP_STELLAR_RECONCILIATION.md``);
+* the five Vimshottari end stamps are 4 s early -- 0.34 mas of Moon
+  longitude, inside one step of the exact-milliarcsecond balance grid (one
+  step is 11.8 s of Rahu-mahadasha time here);
+* cusps 2 and 8 print 1" low (their true residual is -0.09"), while cusps 3
+  and 9 carry the largest numeric cusp residual (+0.85") without crossing a
+  printed arcsecond.  No ayanamsa offset inside the window that keeps all
+  nine planets exact can move cusp 2 by a full printed second.
 
 These tests use the full Swiss Ephemeris data files when present and skip the
 sub-arcsecond assertions when only the Moshier fallback is available.
@@ -233,19 +234,12 @@ def test_dasha_stack_is_deterministic_for_pinned_query_utc(eph, horary_lagna):
     assert build() == build()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="sunrise ours\u2212ref = +8 s (06:36:56 vs 06:36:48), sunset "
-    "ours\u2212ref = \u22127 s (17:59:15 vs 17:59:22); no documented "
-    "atmosphere/horizon convention reproduces both; see "
-    "diagnositics/findings_cusp_sunrise.md",
-)
 def test_sunrise_sunset_match_the_reference_exactly(reference, output):
-    """Exact equality is the goal; the measured residual is +8 s / \u22127 s.
+    """Sunrise and sunset are exact to the printed second.
 
-    Asserted as exact (xfail'd): a fix flips this to failure, and the
-    measured value is pinned in ``tests/test_kp_stellar_strict.py``
-    (``KNOWN_OURS``) so drift fails the suite too.
+    Disc-centre transit with zero refraction at the geocentric latitude
+    reproduces both; the former +8 s / \u22127 s residuals were the Moshier
+    fallback, not a convention mismatch.
     """
     for field in ("sunrise", "sunset"):
         got = output[DETAILS_SECTION][field]
@@ -261,20 +255,12 @@ def test_all_planet_lords_and_flags_match(reference, output):
             assert got[field] == want[field], f"{key}.{field}: {got[field]} != {want[field]}"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="ours\u2212ref = +1.53\u2033 (MOO) .. +10.13\u2033 (VEN), others "
-    "+9.22..+9.84\u2033; convention unknown (the nutation-consistent family "
-    "moves the Moon to \u22126.5\u2033); see "
-    "diagnositics/findings_planets_dasha.md",
-)
 def test_planet_degrees_match_the_reference_exactly(reference, output):
-    """Exact equality is the goal; the measured residual is +1.53"..+10.13".
+    """All nine planetary degrees match the reference's printed arcsecond.
 
-    The residual never crosses a sub-lord boundary here, which is why every
-    lord column in ``test_all_planet_lords_and_flags_match`` still matches.
-    Exact strings are asserted; drift is pinned by ``KNOWN_OURS`` in
-    ``tests/test_kp_stellar_strict.py``.
+    The Moon uses the empirical KP Stellar calibration described in
+    ``KP_STELLAR_RECONCILIATION.md``; the other eight follow the
+    mean-equinox/mean-ayanamsa convention directly.
     """
     for key, want in reference["planets"].items():
         got = output["planets"][key]
@@ -310,17 +296,17 @@ def test_vimsottari_durations_are_identical_across_levels(reference, output):
 
 @pytest.mark.xfail(
     strict=True,
-    reason="ours\u2212ref = \u22122 h 58 m 58 s (\u221210,738 s) -- reference "
-    "later, constant at all five levels; same durations, dasha-implied Moon "
-    "longitude residual \u22120.907\u2033; see "
-    "diagnositics/findings_planets_dasha.md",
+    reason="ours\u2212ref = \u22124 s at all five levels, i.e. 0.34 mas of Moon "
+    "longitude; the balance is computed on the exact-milliarcsecond grid, "
+    "one step of which is 11.8 s here, so 4 s is below the model's own "
+    "resolution",
 )
 def test_vimsottari_end_stamps_match_the_reference_exactly(reference, output):
-    """Exact equality is the goal; the measured residual is 2 h 58 m 58 s.
+    """Exact equality is the goal; the residual is one sub-mas grid step.
 
-    Asserted as exact (xfail'd): a fix flips this to failure, and the
-    measured value is pinned in ``tests/test_kp_stellar_strict.py``
-    (``KNOWN_OURS``) so drift fails the suite too.
+    Asserted as exact (xfail'd): the measured value is pinned in
+    ``tests/test_kp_stellar_strict.py`` (``KNOWN_OURS``) so drift fails the
+    suite too.
     """
     for key, want in reference["vimsottari_dasa"].items():
         got = output["vimsottari_dasa"][key]["end"]
@@ -346,21 +332,24 @@ def test_reference_ascendant_is_the_cusp_of_horary_division_117(
 
 
 def test_horary_cusps_reproduce_the_reference_cusps(chart, reference_cusps):
-    """All twelve cusps reproduce, ten of them to the arcsecond."""
+    """All twelve cusps reproduce within 0.9"; ten to the printed arcsecond."""
     errs = [
         ((chart.cusps[i].longitude - reference_cusps[i] + 180) % 360) - 180
         for i in range(12)
     ]
     worst = max(abs(e) for e in errs) * 3600.0
-    assert worst < 2.0, f"worst cusp off by {worst:.2f}\": {errs}"
-    # Cusps 3 and 9 (the same point, 180 deg apart) are the only ones that
-    # round to a different arcsecond: KP Stellar's Placidus cusp-3 iteration
-    # lands ~0.88" short of ours and nothing else moves with it.  The other
-    # ten agree to better than 0.3".
-    assert abs(errs[2]) * 3600.0 < 1.5 and errs[2] > 0
-    assert errs[8] == pytest.approx(errs[2])  # cusp 9 is cusp 3 + 180
-    assert {i for i in range(12) if abs(errs[i]) * 3600.0 >= 0.5} == {2, 8}
-    assert max(abs(e) for i, e in enumerate(errs) if i not in (2, 8)) * 3600.0 < 0.3
+    assert worst < 1.0, f"worst cusp off by {worst:.2f}\": {errs}"
+    # Cusp 1 is exact.  Cusps 2 and 8 (one point, 180 deg apart) print 1" low
+    # only because their true residual, -0.09", sits just under a truncation
+    # boundary; no ayanamsa offset that keeps all nine planets exact can lift
+    # them a full second.  Cusps 3 and 9 carry the largest numeric residual,
+    # +0.85", without crossing a printed arcsecond.
+    assert errs[0] * 3600.0 == pytest.approx(0.0, abs=1e-6)
+    assert errs[1] * 3600.0 == pytest.approx(-0.089, abs=0.02)
+    assert errs[7] * 3600.0 == pytest.approx(errs[1] * 3600.0, abs=1e-6)
+    assert errs[2] * 3600.0 == pytest.approx(0.85, abs=0.02)
+    assert errs[8] * 3600.0 == pytest.approx(errs[2] * 3600.0, abs=1e-6)
+    assert max(abs(e) for i, e in enumerate(errs) if i not in (2, 8)) * 3600.0 < 0.31
 
 
 def test_houses_still_come_from_the_horary_frame(chart, horary_lagna):

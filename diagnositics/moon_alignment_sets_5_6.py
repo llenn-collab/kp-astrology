@@ -1,5 +1,11 @@
 """Compare KP Stellar sets 5/6 with their kpastro snapshots.
 
+**Historical record.**  ``kpastro_actual5.json`` / ``kpastro_actual6.json``
+are the pre-calibration snapshots: they were generated before the empirical
+Moon correction in ``kpastro.ephemeris`` existed, and they are the measurement
+that motivated it.  Rebuilding those charts with the current code yields a
+correction of ~0.0" (see ``tests/test_moon_calibration.py``).
+
 This is a diagnostic, not a production correction.  It measures:
 * displayed Moon-longitude residuals (reference minus kpastro; whole arcsec);
 * the Moon-longitude correction implied by the Saturn mahadasha end stamp;
