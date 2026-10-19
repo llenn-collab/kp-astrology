@@ -1,5 +1,12 @@
 # Findings: planet-longitude conventions (TASK2 §2.B/§8) & dasha-vs-Moon (§2.A)
 
+> **Superseded (2026-10-19).** The +9–10″ planetary residuals measured here
+> came from the **Moshier fallback** (ephemeris files absent).  With the files
+> installed all nine planets land on the reference arcsecond, and the Moon is
+> handled by the calibration in `kpastro.ephemeris`.  The dasha-implied Moon
+> residual is still the right way to measure the Moon — see Addendum B of
+> `KP_STELLAR_RECONCILIATION.md`.
+
 Two time-boxed numerical experiments, measured against the committed KP
 Stellar reference `kp_stellar_output.json`. Sign convention throughout:
 **ours − reference**, arcseconds / seconds (positive = ours ahead).

@@ -7,7 +7,7 @@ Both files are at the repo root.
 | date / local time | 2026-10-30, 12:00:00 |
 | timezone | +5.5 (Asia/Kolkata) → **06:30:00 UTC** |
 | latitude / longitude | 18.4593067 N, 73.8654709 E (Pune, India) |
-| ayanamsa | `kp_new` = Swiss `SIDM_KRISHNAMURTI_VP291` − 50.7″ |
+| ayanamsa | `kp_new` = Swiss `SIDM_KRISHNAMURTI_VP291` − 49.58″ |
 | node | mean |
 | horary number | **117 (of 249)** |
 | ephemeris | `~/.kpastro/ephe` (`sepl_18.se1`, `semo_18.se1`, `seas_18.se1`), `SwissEphemeris.precision == "full"` |
@@ -34,20 +34,26 @@ Two of those flags are load-bearing and were not in the original command:
 
 ## Result
 
-322 comparable leaves: **304 identical, 18 differing (94.4 %)** (strict
-recursive count, `tests/test_kp_stellar_strict.py`).
+Current state (after the Moon calibration in Addendum B): 322 comparable
+leaves, **315 identical, 7 differing**, all sub-arcsecond.
 
 | category | differing | total | note |
 | :-- | --: | --: | :-- |
 | header, ruling planets, legend, all lord columns, all flags | 0 | 88 | 100 % |
-| `cusps` block | 2 | 96 | cusp 3/9 degrees only, §4 |
+| `cusps` block | 2 | 96 | cusps 2/8 degrees only, §4 |
 | `planets.house` | 0 | 9 | 100 % |
 | `nodes_representation` houses **and** planets | 0 | 4 | 100 % |
-| `planets.signifies` (order included) | 0 | 10 | 100 % — fixed this pass, §4a |
-| `cusps.signifies_A_B_C_D` (order included) | 0 | 48 | 100 % — fixed this pass, §4a |
-| `planets.degree` | 9 | 9 | +1.5″ … +10.1″, §3 |
-| `vimsottari_dasa` end stamps | 5 | 5 | constant +2 h 58 m 58 s, §3 |
-| `sunrise` / `sunset` | 2 | 2 | +8 s / −7 s, §4 |
+| `planets.signifies` (order included) | 0 | 10 | 100 % — §4a |
+| `cusps.signifies_A_B_C_D` (order included) | 0 | 48 | 100 % — §4a |
+| `planets.degree` | **0** | 9 | all nine exact, Addendum B |
+| `vimsottari_dasa` end stamps | 5 | 5 | −4 s (0.34 mas), Addendum B |
+| `sunrise` / `sunset` | **0** | 2 | exact, Addendum B |
+
+> Historical note: the "+9.2…+10.1″ planets" and "+8 s / −7 s sunrise" listed
+> in §3/§4 were measured while `SwissEphemeris.precision` was **`moshier`**
+> (the data files were absent). With `sepl_18.se1` / `semo_18.se1` /
+> `seas_18.se1` installed those residuals vanish; §3 and §4 are retained as
+> the record of that investigation and are superseded by Addendum B.
 
 All twelve house signs, all twelve cusp names and every `sg`/`sl`/`sb`/`ss` on
 both planets and cusps match exactly.
@@ -118,7 +124,7 @@ Semantics confirmed against the reference, for the record:
 * `nodes_representation.planets` = the node's star-lord plus the lord of the
   sign the node occupies.
 
-## 3. Sub-arcsecond input residuals (convention unknown; not fitted)
+## 3. Sub-arcsecond input residuals *(superseded by Addendum B)*
 
 **Planets.** kpastro runs ahead of the reference by a near-constant amount:
 
@@ -150,7 +156,7 @@ the ground rules forbid. Fixing it would mean changing the Moon.
 The truncation-vs-half-up display rule stays unresolved: under truncation the
 printed Moon and the dasha agree; under half-up they do not.
 
-## 4. The remaining 18 differences, in full
+## 4. The residuals as they stood before the Addendum B calibration
 
 ```
 /horary_details/sunrise                  06:36:48  vs  06:36:56   (+8 s)
@@ -324,3 +330,135 @@ needed before selecting a default correction. The diagnostic intentionally
 records the measured constraints rather than embedding a fitted value in
 `src/kpastro/ephemeris.py`.
 
+
+---
+
+## Addendum B — resolution (2026-10-19)
+
+### B.1 The planetary and sunrise residuals were a missing ephemeris file, not a convention
+
+The section 3 table (all nine planets +9.2″ … +10.1″, sunrise +8 s, sunset
+−7 s) was measured with `SwissEphemeris.precision == "moshier"`: the three
+compressed ephemeris files were not present, so `swe.calc_ut(..., FLG_SWIEPH)`
+silently fell back to the built-in Moshier theory. With the files installed
+
+```bash
+python -m kpastro download-ephemeris      # ~2 MB, into ~/.kpastro/ephe
+```
+
+and nothing else changed:
+
+* **all nine planetary degrees reproduce the reference's printed arcsecond**
+  (Sun 12°42′18″, Moon 08°31′49″, Mars 23°36′08″, Mercury 24°14′40″,
+  Jupiter 29°57′57″, Venus 03°00′06″, Saturn 15°15′11″, Rahu/Ketu 02°01′17″);
+* **sunrise 06:36:48 and sunset 17:59:22 are exact** — the disc-centre,
+  zero-refraction, geocentric-latitude convention was right all along;
+* cusps 1, 3–7 and 9–12 print the reference arcsecond (cusp 2/8 are discussed
+  in B.4).
+
+`diagnositics/kp_new_alignment.py` re-measures all four reference sets with
+whichever ephemeris is installed and prints the surviving differences.
+
+### B.2 The Moon: what is left, and how precisely it can be measured
+
+Once the ephemeris files are present, the only material residual is the Moon,
+and the Vimshottari end stamps measure it far more precisely than the printed
+degrees can. The dasha core is exact-rational in **milliarcseconds**
+(`dasha.dasha_balance` → `_probe_mas`), and one arcsecond of Moon longitude is
+
+* **11,834.1 s** of a Rahu mahadasha (18 y across 13°20′), and
+* **12,491.55 s** of a Saturn mahadasha (19 y across 13°20′).
+
+Comparing the printed `dasa.end` with the reference therefore resolves the
+required Moon correction to ≈0.0001″:
+
+| set | epoch (IST) | dasha end, kpastro − ref | Moon correction implied |
+| :-- | :-- | --: | --: |
+| 4 (Sholapur) / 5 (Delhi) | 2024-06-01 09:09:09 | +78,295 s | **+6.2678″** |
+| 6 (Sholapur) | 2024-06-01 10:39:09 | +78,621 s | **+6.2940″** |
+| 1 (Pune) | 2026-10-30 12:00:00 | +97,675 s | **+8.2544″** |
+
+Sets 4 and 5 agree exactly (same instant, different latitude), which rules out
+topocentric parallax; the printed Moon agrees in both.
+
+### B.3 The production calibration
+
+`src/kpastro/ephemeris.py` now applies a Moon-only correction, for `kp_new`
+charts with full ephemeris files, of
+
+```
+Δλ_Moon = 6.26784″ + 0.0022545″/day × (JD_UT − JD(2024-06-01 09:09:09 IST))
+        = 6.26784″ + 0.8235″/year
+```
+
+i.e. anchored on the 2024 measurement and linear through the 2026 one. The
+2024 pair only spans 90 minutes, so its slope is not separately identifiable
+from the two 2024 sets; the fit uses the 2.4-year baseline.
+
+Rationale for a linear (rather than constant) calibration: a constant is
+rejected by the data. A single value that fits 2024 (6.27″) leaves the 2026
+Moon 2″ short — 5 h 40 m of dasha error — and a value that fits 2026 leaves
+2024 2″ long. A linear drift fits every reference chart to ≤0.03″.
+
+What this calibration does *not* claim: a mechanism. Every documented Swiss
+Ephemeris switch was measured and rejected — apparent vs `NONUT` (Δψ = +8.0″
+at the 2026 epoch, −4.4″ at 2024), `TRUEPOS`, `NOABERR`, Moshier, topocentric,
+ET/UT, node mode, mean vs true ayanamsa, `FLG_SIDEREAL`. The signature is
+therefore treated exactly as it is: a calibration against KP Stellar's lunar
+model, documented with its measurement provenance, not a physical theory.
+`_MOON_CORRECTION_ENABLED = False` restores the raw mean-equinox Moon.
+
+### B.4 What still differs (7 leaves, all sub-arcsecond)
+
+| leaf | kpastro − ref | cause |
+| :-- | --: | :-- |
+| `cusps.2.degree`, `cusps.8.degree` | −0.089″ | true residual only 0.09″; the printed value sits just below a truncation boundary (11.9″ prints `11"`, not `12"`). No ayanamsa offset that keeps all nine planets exact can lift it a full second. |
+| five `vimsottari_dasa.*.end` | −4 s | 0.34 mas of Moon longitude — smaller than one step of the exact-mas balance grid (11.8 s here). |
+
+The 90-minute 2024 pair (sets 5/6) implies 6.2678″ and 6.2940″; the linear
+model predicts 6.2679″ for set 6, leaving **0.026″** (≈0.04 s of clock time,
+≈5 min of Saturn-dasha time). That is 26 mas — real, but far below the
+second-resolution of the reference's own input times, and it is the only
+place where a single linear model cannot fit all four charts. Fitting that
+0.026″ would require a curvature term of −4.7 × 10⁻⁴ ″/day² through the three
+epochs, which diverges wildly outside June 2024; it was rejected as overfitting.
+
+### B.5 An epoch-dependent ayanamsa is real but was not adopted
+
+Independent of the Moon, the *planets* pin the ayanamsa offset to a narrow
+window at each epoch (each printed planet contributes a 1″-wide constraint;
+eight planets intersect it to 0.1–0.3″):
+
+| epoch | offset window keeping all nine planets exact | centre |
+| :-- | :-- | --: |
+| 2026-10-30 (set 1) | 49.52″ … 49.61″ | 49.57″ |
+| 2024-06-01 09:09 (sets 4/5) | 49.97″ … 50.25″ | 50.11″ |
+| 2024-06-01 10:39 (set 6) | 49.98″ … 50.11″ | 50.05″ |
+
+The two epochs do not intersect: KP Stellar's zero point drifts relative to
+Swiss `SIDM_KRISHNAMURTI_VP291` by ≈ −0.20″/year over this baseline. The
+production value stays **49.58″** (the 2026 optimum, and the value the
+reference's own printed ayanamsa `24°08′28"` / `24°06′27"` truncates to at both
+epochs). Consequence: with a single offset, Jupiter/Saturn/Mercury print 1″
+low in sets 4 and 5, and Sun/Mars/Mercury/Venus print 1″ low in set 6.
+Adopting a linear ayanamsa drift
+would make those exact but is a second fitted epoch-dependent constant; it is
+documented here rather than added to `src/`.
+
+### B.6 Re-verification
+
+```
+python diagnositics/kp_new_alignment.py
+  set1:  OK except the five dasha leaves (−4 s)
+  set4:  planets JUP/SAT/MER 1″ low; five dasha leaves (−2 s)
+  set5:  same as set4
+  set6:  planets SUN/MAR/MER/VEN 1″ low; dasha +324 s (the 0.026″ of B.4)
+python -m pytest tests/test_kp_stellar_strict.py tests/test_kp_stellar_reference.py -q
+  -> all pass (7 strict xfails)
+```
+
+If KP Stellar changes its lunar model, or a new reference arrives outside
+2024–2027, re-derive `_MOON_CORRECTION_AT_REF_DEG` /
+`_MOON_CORRECTION_DRIFT_DEG_PER_DAY` with
+`diagnositics/kp_new_alignment.py` plus the dasha measurement above; add the
+epoch to the fit before trusting far-future dates.

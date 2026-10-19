@@ -8,17 +8,24 @@ via ``[i]``, empty containers treated as leaves (paths mirror
 ``diagnositics/jdiff.py``; 322 leaves per document).
 
 Every leaf must be **exactly** equal to the reference (same value *and* same
-type) unless it is one of the 18 residuals enumerated in ``KNOWN_RESIDUALS``.
+type) unless it is one of the 7 residuals enumerated in ``KNOWN_RESIDUALS``.
 Each residual is its own ``xfail(strict=True)`` case carrying its measured
 value, so fixing one flips the suite to failure and forces this table to be
-updated.  ``test_exactly_eighteen_leaves_differ`` guards the other direction:
+updated.  ``test_exactly_seven_leaves_differ`` guards the other direction:
 a new residual anywhere in the document fails loudly.
 
-The residuals (ours minus reference) are documented in:
+All nine planet degrees, sunrise and sunset are now exact.  What remains is
+sub-arcsecond house geometry and the milliarcsecond quantisation of the dasha
+core:
 
-* ``diagnositics/findings_planets_dasha.md`` -- nine planetary degrees and
-  the five Vimshottari end stamps;
-* ``diagnositics/findings_cusp_sunrise.md`` -- sunrise/sunset and cusps 3/9.
+* ``$.cusps.2.degree`` / ``$.cusps.8.degree`` -- kpastro prints 1" lower than
+  KP Stellar; every other cusp (including the Ascendant) is exact.
+* the five Vimshottari end stamps -- 4 s earlier, i.e. 0.34 mas of Moon
+  longitude; the balance is computed on the exact-mas grid, one step of which
+  is 11.8 s of Rahu-mahadasha time here.
+
+See ``KP_STELLAR_RECONCILIATION.md`` for the calibration that removed the
+former 9-10" planetary residuals and 2 h 59 m dasha residual.
 
 The sub-arcsecond comparisons are only meaningful with the full Swiss
 Ephemeris files; the module skips when the Moshier fallback would be used.
@@ -50,86 +57,41 @@ HORARY_NUMBER = 117
 DETAILS_SECTION = "horary_details"
 
 #: Every leaf known to differ from the reference, with its measured residual.
-#: No others may exist: ``test_exactly_eighteen_leaves_differ`` asserts the
+#: No others may exist: ``test_exactly_seven_leaves_differ`` asserts the
 #: actual difference set is exactly this set, so any new or resolved residual
 #: fails the suite.
 KNOWN_RESIDUALS: dict[str, str] = {
-    "$.horary_details.sunrise": (
-        "ours\u2212ref = +8 s (06:36:56 vs 06:36:48); no documented "
-        "atmosphere/horizon convention reproduces rise and set together; "
-        "see diagnositics/findings_cusp_sunrise.md"
-    ),
-    "$.horary_details.sunset": (
-        "ours\u2212ref = \u22127 s (17:59:15 vs 17:59:22); same finding as "
-        "sunrise; see diagnositics/findings_cusp_sunrise.md"
-    ),
     "$.vimsottari_dasa.dasa.end": (
-        "ours\u2212ref = \u22122 h 58 m 58 s (\u221210,738 s; reference later, "
-        "constant at all five levels: same durations, dasha-implied Moon "
-        "longitude residual \u22120.907\u2033); "
-        "see diagnositics/findings_planets_dasha.md"
+        "ours\u2212ref = \u22124 s (23:47:30 vs 23:47:34); the balance is "
+        "quantised to exact milliarcseconds, one step of which is 11.8 s of "
+        "Rahu-mahadasha time, so \u22124 s is inside a single grid step; "
+        "see KP_STELLAR_RECONCILIATION.md"
     ),
     "$.vimsottari_dasa.bhukti.end": (
-        "ours\u2212ref = \u22122 h 58 m 58 s (\u221210,738 s; constant at all "
-        "five levels); see diagnositics/findings_planets_dasha.md"
+        "ours\u2212ref = \u22124 s (15:59:30 vs 15:59:34); same "
+        "milliarcsecond grid step at every level"
     ),
     "$.vimsottari_dasa.antara.end": (
-        "ours\u2212ref = \u22122 h 58 m 58 s (\u221210,738 s; constant at all "
-        "five levels); see diagnositics/findings_planets_dasha.md"
+        "ours\u2212ref = \u22124 s (03:20:48 vs 03:20:52); same "
+        "milliarcsecond grid step at every level"
     ),
     "$.vimsottari_dasa.sookshma.end": (
-        "ours\u2212ref = \u22122 h 58 m 58 s (\u221210,738 s; constant at all "
-        "five levels); see diagnositics/findings_planets_dasha.md"
+        "ours\u2212ref = \u22124 s (08:00:15 vs 08:00:19); same "
+        "milliarcsecond grid step at every level"
     ),
     "$.vimsottari_dasa.prana.end": (
-        "ours\u2212ref = \u22122 h 58 m 58 s (\u221210,738 s; constant at all "
-        "five levels); see diagnositics/findings_planets_dasha.md"
+        "ours\u2212ref = \u22124 s (20:35:25 vs 20:35:29); same "
+        "milliarcsecond grid step at every level"
     ),
-    "$.planets.SUN.degree": (
-        "ours\u2212ref = +9.22\u2033 (printed 12\u00b042'27\" vs 12\u00b042'18\"); "
-        "convention unknown; see diagnositics/findings_planets_dasha.md"
+    "$.cusps.2.degree": (
+        "ours\u2212ref < 1\u2033 (prints 17\u00b021'11\" vs 17\u00b021'12\"); "
+        "cusp 1 is exact, so this is Placidus intermediate-cusp geometry, "
+        "not the ayanamsa: the whole ayanamsa window that keeps all nine "
+        "planets exact cannot lift cusp 2 by a full arcsecond"
     ),
-    "$.planets.MOO.degree": (
-        "ours\u2212ref = +1.53\u2033 (printed 08\u00b031'51\" vs 08\u00b031'49\"); "
-        "convention unknown; see diagnositics/findings_planets_dasha.md"
-    ),
-    "$.planets.MAR.degree": (
-        "ours\u2212ref = +9.68\u2033 (printed 23\u00b036'18\" vs 23\u00b036'08\"); "
-        "convention unknown; see diagnositics/findings_planets_dasha.md"
-    ),
-    "$.planets.RAH.degree": (
-        "ours\u2212ref = +9.48\u2033 (printed 02\u00b001'26\" vs 02\u00b001'17\"); "
-        "convention unknown; see diagnositics/findings_planets_dasha.md"
-    ),
-    "$.planets.JUP.degree": (
-        "ours\u2212ref = +9.57\u2033 (printed 29\u00b058'07\" vs 29\u00b057'57\"); "
-        "convention unknown; see diagnositics/findings_planets_dasha.md"
-    ),
-    "$.planets.SAT.degree": (
-        "ours\u2212ref = +9.76\u2033 (printed 15\u00b015'21\" vs 15\u00b015'11\"); "
-        "convention unknown; see diagnositics/findings_planets_dasha.md"
-    ),
-    "$.planets.MER.degree": (
-        "ours\u2212ref = +9.84\u2033 (printed 24\u00b014'50\" vs 24\u00b014'40\"); "
-        "convention unknown; see diagnositics/findings_planets_dasha.md"
-    ),
-    "$.planets.KET.degree": (
-        "ours\u2212ref = +9.48\u2033 (printed 02\u00b001'26\" vs 02\u00b001'17\"); "
-        "convention unknown; see diagnositics/findings_planets_dasha.md"
-    ),
-    "$.planets.VEN.degree": (
-        "ours\u2212ref = +10.13\u2033 (printed 03\u00b000'16\" vs 03\u00b000'06\"); "
-        "convention unknown; see diagnositics/findings_planets_dasha.md"
-    ),
-    "$.cusps.3.degree": (
-        "ours\u2212ref = +0.883\u2033 (prints 17\u00b020'11\" vs 17\u00b020'10\"); "
-        "no documented Swiss Ephemeris option moves cusp 3 alone; "
-        "see diagnositics/findings_cusp_sunrise.md"
-    ),
-    "$.cusps.9.degree": (
-        "ours\u2212ref = +0.883\u2033 (prints 17\u00b020'11\" vs 17\u00b020'10\"); "
-        "cusp 9 is cusp 3 + 180 deg, one solve; "
-        "see diagnositics/findings_cusp_sunrise.md"
+    "$.cusps.8.degree": (
+        "ours\u2212ref < 1\u2033 (prints 17\u00b021'11\" vs 17\u00b021'12\"); "
+        "cusp 8 is cusp 2 + 180 deg, so it shares the same single solve"
     ),
 }
 
@@ -137,28 +99,17 @@ KNOWN_RESIDUALS: dict[str, str] = {
 _MISSING = object()
 
 #: kpastro's *current* value for each residual path, pinned so drift is
-#: caught: ``test_exactly_eighteen_leaves_differ`` (not xfail'd) asserts
+#: caught: ``test_exactly_seven_leaves_differ`` (not xfail'd) asserts
 #: these, because an ``xfail(strict=True)`` alone cannot distinguish "still
 #: the recorded residual" from "a different residual at the same path".
 KNOWN_OURS: dict[str, object] = {
-    "$.horary_details.sunrise": "06:36:56",
-    "$.horary_details.sunset": "17:59:15",
-    "$.vimsottari_dasa.dasa.end": "24/Apr/2042 20:48:36",
-    "$.vimsottari_dasa.bhukti.end": "05/Jan/2027 13:00:36",
-    "$.vimsottari_dasa.antara.end": "09/Nov/2026 00:21:54",
-    "$.vimsottari_dasa.sookshma.end": "22/Oct/2026 05:01:21",
-    "$.vimsottari_dasa.prana.end": "18/Oct/2026 17:36:31",
-    "$.planets.SUN.degree": "12\u00b042'27\"",
-    "$.planets.MOO.degree": "08\u00b031'51\"",
-    "$.planets.MAR.degree": "23\u00b036'18\"",
-    "$.planets.RAH.degree": "02\u00b001'26\"",
-    "$.planets.JUP.degree": "29\u00b058'07\"",
-    "$.planets.SAT.degree": "15\u00b015'21\"",
-    "$.planets.MER.degree": "24\u00b014'50\"",
-    "$.planets.KET.degree": "02\u00b001'26\"",
-    "$.planets.VEN.degree": "03\u00b000'16\"",
-    "$.cusps.3.degree": "17\u00b020'11\"",
-    "$.cusps.9.degree": "17\u00b020'11\"",
+    "$.vimsottari_dasa.dasa.end": "24/Apr/2042 23:47:30",
+    "$.vimsottari_dasa.bhukti.end": "05/Jan/2027 15:59:30",
+    "$.vimsottari_dasa.antara.end": "09/Nov/2026 03:20:48",
+    "$.vimsottari_dasa.sookshma.end": "22/Oct/2026 08:00:15",
+    "$.vimsottari_dasa.prana.end": "18/Oct/2026 20:35:25",
+    "$.cusps.2.degree": "17\u00b021'11\"",
+    "$.cusps.8.degree": "17\u00b021'11\"",
 }
 
 
@@ -276,16 +227,16 @@ def _differing_leaves(ref_leaves: dict, out_leaves: dict) -> list[str]:
 # The whole document, leaf by leaf
 # ---------------------------------------------------------------------------
 
-def test_exactly_eighteen_leaves_differ(leaf_maps):
-    """Every leaf is exactly equal except the 18 recorded residuals.
+def test_exactly_seven_leaves_differ(leaf_maps):
+    """Every leaf is exactly equal except the 7 recorded residuals.
 
     A new residual anywhere -- value, type, missing or extra key -- fails
     here loudly, as does a residual that has been (partially) fixed.
     """
     ref_leaves, out_leaves = leaf_maps
     diffs = _differing_leaves(ref_leaves, out_leaves)
-    assert len(diffs) == 18, (
-        f"{len(diffs)} differing leaves, expected 18:\n" + "\n".join(diffs)
+    assert len(diffs) == 7, (
+        f"{len(diffs)} differing leaves, expected 7:\n" + "\n".join(diffs)
     )
     assert set(diffs) == set(KNOWN_RESIDUALS), (
         "unexpected new differences: "

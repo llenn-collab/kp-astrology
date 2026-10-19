@@ -1,5 +1,11 @@
 # Findings: cusp 3/9 rounding probe (A) and sunrise/sunset probe (B)
 
+> **Superseded (2026-10-19).** The +8 s / −7 s sunrise/sunset residuals were
+> the Moshier fallback; with the ephemeris files installed both are exact.
+> The cusp story moved: cusps 3/9 now print the reference arcsecond and it is
+> cusps 2/8 that print 1″ low, on a true residual of only −0.09″.  See
+> Addendum B of `KP_STELLAR_RECONCILIATION.md`.
+
 TASK2 §2.C / §2.D. Both probes are **diagnostic only** — no `src/` or `tests/`
 file was created, modified, or deleted; nothing was committed. Sign convention
 throughout: **ours − reference**, seconds / arcseconds.

@@ -11,8 +11,11 @@ to the sidereal zodiac by subtracting the configured ayanamsa.
 * Node: KP traditionally uses the **mean** node; ``true`` is available.
 * Ephemeris files: with the compressed JPL/VSOP files installed (see
   :func:`download_ephemeris`) the full precision Swiss ephemeris is used,
-  otherwise the built-in **Moshier** ephemeris (planet error < 1", Moon
-  ~0.5") kicks in silently - plenty for KP subdivision work.
+  otherwise the built-in **Moshier** ephemeris kicks in silently.  Moshier is
+  plenty for KP subdivision work but is **not** what KP Stellar uses: without
+  the data files every planet lands ~9-10" away and the sunrise/sunset times
+  drift by seconds.  Any comparison against a KP Stellar reference requires
+  the files (see ``SwissEphemeris.precision``).
 
 Time base note
 --------------
@@ -62,18 +65,50 @@ AYANAMSA_MODES["kp_new"] = swe.SIDM_KRISHNAMURTI_VP291
 
 #: Zero-point offsets (degrees) applied on top of the Swiss ayanamsa.
 #:
-#: Calibrated against KP Stellar "KP New" for 2024-12-18 02:20:01 IST:
-#:     Swiss SE_SIDM_KRISHNAMURTI_VP291 -> 24 deg 07' 44.7"
-#:     KP Stellar "KP New"              -> 24 deg 06' 54.0"
-#:     delta                            -> 50.7 arcsec
+#: ``49.58`` arcsec is the offset that reproduces KP Stellar "KP New" at the
+#: 2026-10-30 reference epoch (it is also the value consistent with the
+#: reference's own printed ayanamsa, ``24 deg 08' 28"`` there and
+#: ``24 deg 06' 27"`` at 2024-06-01).
 #:
-#: Two ayanamsa definitions sharing the same precession model differ by a
-#: near-constant zero point, so a fixed offset is stable to well under an
-#: arcsecond per century.  Re-verify against a second epoch before treating
-#: this as permanent.
+#: The offset is **epoch dependent**: the windows that keep all nine planets
+#: on KP Stellar's printed arcsecond are 49.52-49.61" in Oct 2026 but
+#: 49.97-50.25" in Jun 2024, i.e. KP Stellar's zero point drifts against
+#: ``SIDM_KRISHNAMURTI_VP291`` by about -0.20"/year.  A single value is kept
+#: deliberately (see ``KP_STELLAR_RECONCILIATION.md`` Addendum B.5); the cost
+#: is that three or four planets in the 2024 references print 1" low.
 _AYANAMSA_OFFSETS_DEG: dict[str, float] = {
     "kp_new": 49.58 / 3600.0,
 }
+
+#: Empirical Moon correction for KP Stellar alignment (sidereal, degrees).
+#:
+#: KP Stellar's Moon runs consistently ahead of the mean-equinox / mean-ayanamsa
+#: convention used here, by an amount that is **not** reproduced by any
+#: documented Swiss Ephemeris flag (apparent vs true, light-time, nutation,
+#: topocentric parallax and the Moshier lunar theory were all measured and
+#: rejected -- see ``KP_STELLAR_RECONCILIATION.md``).  The residual is a smooth
+#: function of epoch, so it is calibrated directly against the reference
+#: charts:
+#:
+#: * 2024-06-01 09:09:09 IST (sets 4 and 5): ``+6.2678`` arcsec
+#: * 2026-10-30 12:00:00 IST (set 1):          ``+8.2544`` arcsec
+#:
+#: Both values are measured from the Saturn/Rahu mahadasha end stamps, which
+#: resolve the Moon to ~0.0001 arcsec (one second of dasha time is 0.00008
+#: arcsec of Moon longitude).  The two epochs are therefore consistent with a
+#: linear drift of **+0.0022545 arcsec/day (+0.8235 arcsec/year)**, which is the
+#: model implemented here.  The +90 min set 6 chart agrees to 0.026 arcsec
+#: (0.04 s of clock time), the smallest residual the second-resolution
+#: reference timestamps can meaningfully constrain.
+#:
+#: This is a calibration against the commercial product's lunar theory, not a
+#: physical correction: re-derive it if KP Stellar changes its Moon ephemeris,
+#: and add a new epoch to the fit before trusting dates far outside 2024-2027.
+_MOON_CORRECTION_JD_REF: float = 2460462.6521889362  # 2024-06-01 09:09:09 IST
+_MOON_CORRECTION_AT_REF_DEG: float = 6.26784 / 3600.0
+_MOON_CORRECTION_DRIFT_DEG_PER_DAY: float = 0.0022545318 / 3600.0  # +0.8235″/yr
+#: When True the Moon correction is applied; disable for raw-comparison studies.
+_MOON_CORRECTION_ENABLED: bool = True
 
 NODES: dict[str, int] = {"mean": swe.MEAN_NODE, "true": swe.TRUE_NODE}
 
@@ -298,10 +333,26 @@ class SwissEphemeris:
         arr, retflag = swe.calc_ut(jd_ut, body, flags)[:2]
         return arr, retflag
 
+    def _moon_correction(self, jd_ut: float) -> float:
+        """Empirical Moon correction (degrees) for KP Stellar alignment.
+
+        Applied only for ``kp_new`` and only when :data:`_MOON_CORRECTION_ENABLED`
+        is True.  The correction is ``base + drift*(jd - jd_ref)``, calibrated
+        from the four reference sets (see the ``_MOON_CORRECTION_*`` constants above
+        and Addendum B of ``KP_STELLAR_RECONCILIATION.md``).  Disabling yields the
+        raw mean-equinox Moon (useful for Moshier or theory comparisons).
+        """
+        if not _MOON_CORRECTION_ENABLED or self.ayanamsa_mode != "kp_new":
+            return 0.0
+        return _MOON_CORRECTION_AT_REF_DEG + _MOON_CORRECTION_DRIFT_DEG_PER_DAY * (
+            jd_ut - _MOON_CORRECTION_JD_REF
+        )
+
     def body(self, jd_ut: float, name: str) -> tuple[float, float]:
         """Sidereal longitude + daily speed of one canonical body (incl. nodes).
 
         Avoids recomputing the whole chart when only one body is needed.
+        The Moon receives the empirical KP Stellar correction when enabled.
         """
         ayan = self.ayanamsa(jd_ut)
         if name in ("Rahu", "Ketu"):
@@ -310,7 +361,10 @@ class SwissEphemeris:
                 lon = (lon + 180.0) % 360.0
             return normalize_longitude(lon - ayan), speed
         arr, _ = self._calc(jd_ut, SWE_BODY[name])
-        return normalize_longitude(arr[0] - ayan), float(arr[3])
+        lon = normalize_longitude(arr[0] - ayan)
+        if name == "Moon":
+            lon = normalize_longitude(lon + self._moon_correction(jd_ut))
+        return lon, float(arr[3])
 
     def close(self) -> None:
         """Release the ephemeris data files held by the global engine.
@@ -346,10 +400,14 @@ class SwissEphemeris:
 
     def sidereal_positions(self, jd_ut: float) -> dict[str, tuple[float, float]]:
         ayan = self.ayanamsa(jd_ut)
-        return {
-            name: (normalize_longitude(lon - ayan), speed)
-            for name, (lon, speed) in self.tropical_positions(jd_ut).items()
-        }
+        moon_corr = self._moon_correction(jd_ut)
+        out: dict[str, tuple[float, float]] = {}
+        for name, (lon, speed) in self.tropical_positions(jd_ut).items():
+            sid = normalize_longitude(lon - ayan)
+            if name == "Moon" and moon_corr:
+                sid = normalize_longitude(sid + moon_corr)
+            out[name] = (sid, speed)
+        return out
 
     # -- houses -----------------------------------------------------------
 

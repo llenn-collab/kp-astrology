@@ -1,9 +1,10 @@
-"""Regression checks for the set-5/set-6 Moon residual diagnosis.
+"""Regression checks for the pre-calibration set-5/set-6 Moon diagnosis.
 
-These tests pin the measured constraints in the committed reference snapshots.
-They deliberately do not apply a production longitude correction: the current
-fixtures do not uniquely identify whether the remaining effect is an angular
-offset, an epoch-dependent lunar-model difference, or a Moon-only time bias.
+These tests pin the measured constraints in the **historical**
+``kpastro_actual5.json`` / ``kpastro_actual6.json`` snapshots -- the evidence
+that motivated the empirical correction now applied by
+``kpastro.ephemeris``.  They are kept so the measurement stays reproducible;
+``tests/test_moon_calibration.py`` covers the calibrated (current) behaviour.
 """
 
 from __future__ import annotations
