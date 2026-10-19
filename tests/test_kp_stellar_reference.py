@@ -21,15 +21,16 @@ Vimshottari all stay on the birth data.  That is why:
 ``compute_chart(..., horary_lagna=...)``.  What still differs, and is pinned
 down here rather than hidden:
 
-* nine planetary degrees, +1.5" .. +10.1" -- KP Stellar's own truncated
-  planetary series;
+* nine planetary degrees, +1.5" .. +10.1" -- convention unknown; the leading
+  hypothesis is nutation (kpastro mixes apparent longitudes with a mean
+  ayanamsa), but no documented convention reproduces all nine;
 * all five Vimshottari end stamps, a *constant* 2 h 58 m 58 s -- same
-  durations, epoch shifted by the ~1.5" Moon residual;
-* sunrise/sunset, 8 s and 7 s;
-* cusps 3 and 9, 1" -- the Placidus cusp-3 iteration converges a hair short
-  of ours, and nothing else moves with it;
-* the row order of three ``signifies`` lists and three ``signifies_A_B_C_D``
-  lists, named individually below.
+  durations, epoch shifted by the ~0.91" Moon residual implied by the dasha;
+* sunrise/sunset, 8 s and 7 s -- no documented refraction/atmosphere setting
+  reproduces both;
+* cusps 3 and 9, 1" -- no documented Swiss Ephemeris option moves cusp 3
+  alone; whether the reference truncates or truncates-inconsistently is
+  unresolved (see ``diagnositics/findings_cusp_sunrise.md``).
 
 These tests use the full Swiss Ephemeris data files when present and skip the
 sub-arcsecond assertions when only the Moshier fallback is available.
@@ -232,15 +233,24 @@ def test_dasha_stack_is_deterministic_for_pinned_query_utc(eph, horary_lagna):
     assert build() == build()
 
 
-def test_sunrise_sunset_within_a_minute(reference, output):
-    """Sunrise/sunset agree to ~8 s; the residual is KP Stellar's solar theory."""
+@pytest.mark.xfail(
+    strict=True,
+    reason="sunrise ours\u2212ref = +8 s (06:36:56 vs 06:36:48), sunset "
+    "ours\u2212ref = \u22127 s (17:59:15 vs 17:59:22); no documented "
+    "atmosphere/horizon convention reproduces both; see "
+    "diagnositics/findings_cusp_sunrise.md",
+)
+def test_sunrise_sunset_match_the_reference_exactly(reference, output):
+    """Exact equality is the goal; the measured residual is +8 s / \u22127 s.
+
+    Asserted as exact (xfail'd): a fix flips this to failure, and the
+    measured value is pinned in ``tests/test_kp_stellar_strict.py``
+    (``KNOWN_OURS``) so drift fails the suite too.
+    """
     for field in ("sunrise", "sunset"):
         got = output[DETAILS_SECTION][field]
         want = reference[DETAILS_SECTION][field]
-        delta = abs(
-            datetime.strptime(got, "%H:%M:%S") - datetime.strptime(want, "%H:%M:%S")
-        ).total_seconds()
-        assert delta <= 60, f"{field}: {got} vs {want} ({delta:.0f}s apart)"
+        assert got == want, f"{field}: {got!r} != {want!r}"
 
 
 def test_all_planet_lords_and_flags_match(reference, output):
@@ -251,16 +261,27 @@ def test_all_planet_lords_and_flags_match(reference, output):
             assert got[field] == want[field], f"{key}.{field}: {got[field]} != {want[field]}"
 
 
-def test_planet_degrees_within_fifteen_arcsec(reference, output):
-    """KP Stellar's own planetary series runs ~9.5" behind Swiss Ephemeris.
+@pytest.mark.xfail(
+    strict=True,
+    reason="ours\u2212ref = +1.53\u2033 (MOO) .. +10.13\u2033 (VEN), others "
+    "+9.22..+9.84\u2033; convention unknown (the nutation-consistent family "
+    "moves the Moon to \u22126.5\u2033); see "
+    "diagnositics/findings_planets_dasha.md",
+)
+def test_planet_degrees_match_the_reference_exactly(reference, output):
+    """Exact equality is the goal; the measured residual is +1.53"..+10.13".
 
     The residual never crosses a sub-lord boundary here, which is why every
-    lord column above still matches.
+    lord column in ``test_all_planet_lords_and_flags_match`` still matches.
+    Exact strings are asserted; drift is pinned by ``KNOWN_OURS`` in
+    ``tests/test_kp_stellar_strict.py``.
     """
     for key, want in reference["planets"].items():
-        got = dms(output["planets"][key]["degree"], output["planets"][key]["sign"])
-        ref = dms(want["degree"], want["sign"])
-        assert abs(got - ref) * 3600.0 <= 15.0, f"{key}: {(got - ref) * 3600:.1f}\""
+        got = output["planets"][key]
+        assert (got["sign"], got["degree"]) == (want["sign"], want["degree"]), (
+            f"{key}: ({got['sign']}, {got['degree']!r}) != "
+            f"({want['sign']}, {want['degree']!r})"
+        )
 
 
 def test_ruling_planets_match(reference, output):
@@ -272,8 +293,8 @@ def test_vimsottari_lords_match(reference, output):
            [v["lord"] for v in reference["vimsottari_dasa"].values()]
 
 
-def test_vimsottari_end_stamps_agree_to_a_few_hours(reference, output):
-    """All five end stamps sit a constant ~3 h apart.
+def test_vimsottari_durations_are_identical_across_levels(reference, output):
+    """All five end stamps share one constant offset -- i.e. identical durations.
 
     A constant offset across levels means the *durations* agree exactly and
     only the epoch does: the reference's Moon is ~1.5" behind ours, which over
@@ -285,7 +306,25 @@ def test_vimsottari_end_stamps_agree_to_a_few_hours(reference, output):
         ref = datetime.strptime(want["end"], "%d/%b/%Y %H:%M:%S")
         deltas.append((ref - got).total_seconds())
     assert max(deltas) - min(deltas) < 2.0, f"offsets drift: {deltas}"
-    assert 2.5 * 3600 < deltas[0] < 3.5 * 3600
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="ours\u2212ref = \u22122 h 58 m 58 s (\u221210,738 s) -- reference "
+    "later, constant at all five levels; same durations, dasha-implied Moon "
+    "longitude residual \u22120.907\u2033; see "
+    "diagnositics/findings_planets_dasha.md",
+)
+def test_vimsottari_end_stamps_match_the_reference_exactly(reference, output):
+    """Exact equality is the goal; the measured residual is 2 h 58 m 58 s.
+
+    Asserted as exact (xfail'd): a fix flips this to failure, and the
+    measured value is pinned in ``tests/test_kp_stellar_strict.py``
+    (``KNOWN_OURS``) so drift fails the suite too.
+    """
+    for key, want in reference["vimsottari_dasa"].items():
+        got = output["vimsottari_dasa"][key]["end"]
+        assert got == want["end"], f"{key}.end: {got!r} != {want['end']!r}"
 
 
 # ---------------------------------------------------------------------------
@@ -416,26 +455,11 @@ def _emit(chart) -> dict:
     ), ensure_ascii=False))
 
 
-#: kpastro emits ``signifies`` in the group order [star-lord's occupied house,
-#: own house, houses the star-lord owns, houses the planet owns], which
-#: reproduces six of the nine reference rows verbatim.  KP Stellar's own order
-#: for these three swaps the first two groups; it is not a function of anything
-#: in the chart, so they are compared as sets and named here.
-SIGNIFIES_ORDER_ONLY = {"SUN", "MOO", "VEN"}
-
-#: Same story for three of the 48 ``signifies_A_B_C_D`` lists: membership is
-#: right, the order is not.
-ABCD_ORDER_ONLY = {("3", 2), ("8", 2), ("11", 0)}
-
-
 def _check_house_derived(got, reference, *, cusp_sign_exact):
     for key, want in reference["planets"].items():
         assert got["planets"][key]["house"] == want["house"], key
         got_sig, want_sig = got["planets"][key]["signifies"], want["signifies"]
-        if key in SIGNIFIES_ORDER_ONLY:
-            assert sorted(got_sig) == sorted(want_sig), key
-        else:
-            assert got_sig == want_sig, f"{key}: {got_sig} != {want_sig}"
+        assert got_sig == want_sig, f"{key}: {got_sig} != {want_sig}"
 
     for h, want in reference["cusps"].items():
         for field in ("name", "sg", "sl", "sb", "ss"):
@@ -443,15 +467,11 @@ def _check_house_derived(got, reference, *, cusp_sign_exact):
         if cusp_sign_exact:
             assert got["cusps"][h]["sign"] == want["sign"], f"cusp {h}.sign"
 
-    order_only_seen = set()
     for h, want in reference["cusps"].items():
         for i, (got_list, want_list) in enumerate(
             zip(got["cusps"][h]["signifies_A_B_C_D"], want["signifies_A_B_C_D"])
         ):
-            assert sorted(got_list) == sorted(want_list), f"cusp {h} class {'ABCD'[i]}"
-            if got_list != want_list:
-                order_only_seen.add((h, i))
-    assert order_only_seen == ABCD_ORDER_ONLY, order_only_seen
+            assert got_list == want_list, f"cusp {h} class {'ABCD'[i]}"
 
     for node in ("RAH", "KET"):
         assert got["nodes_representation"][node]["houses"] == \
@@ -463,8 +483,9 @@ def _check_house_derived(got, reference, *, cusp_sign_exact):
 def test_house_derived_fields_match_the_reference(output, reference):
     """The shipped code path reproduces every house-derived leaf.
 
-    Cusp *signs* and the ``signifies``/``A_B_C_D`` membership of all 48 lists
-    come out of ``natal --horary-no 117`` exactly as the reference has them.
+    Cusp *signs* and all ``signifies``/``A_B_C_D`` lists -- membership *and*
+    order -- come out of ``natal --horary-no 117`` exactly as the reference
+    has them.
     """
     _check_house_derived(output, reference, cusp_sign_exact=True)
 
@@ -472,7 +493,7 @@ def test_house_derived_fields_match_the_reference(output, reference):
 def test_injecting_the_reference_cusps_leaves_only_the_1_arcsec_residual(
     chart, reference, reference_cusps
 ):
-    """The cusps 3/9 arcsecond is the *only* thing between us and byte-exact.
+    """The cusps 3/9 arcsecond is the only *cusp-derived* residual.
 
     Feed the reference's own 12 cusps into kpastro's significator engine and
     the two cusp degrees that differed by 1" are now identical too -- so the

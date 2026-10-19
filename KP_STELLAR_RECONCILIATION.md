@@ -34,15 +34,17 @@ Two of those flags are load-bearing and were not in the original command:
 
 ## Result
 
-223 comparable leaves: **199 identical, 24 differing (89.2 %)**.
+322 comparable leaves: **304 identical, 18 differing (94.4 %)** (strict
+recursive count, `tests/test_kp_stellar_strict.py`).
 
 | category | differing | total | note |
 | :-- | --: | --: | :-- |
 | header, ruling planets, legend, all lord columns, all flags | 0 | 88 | 100 % |
-| `cusps` block | 5 | 96 | §4 |
+| `cusps` block | 2 | 96 | cusp 3/9 degrees only, §4 |
 | `planets.house` | 0 | 9 | 100 % |
 | `nodes_representation` houses **and** planets | 0 | 4 | 100 % |
-| `planets.signifies` | 3 | 10 | row order only, §4 |
+| `planets.signifies` (order included) | 0 | 10 | 100 % — fixed this pass, §4a |
+| `cusps.signifies_A_B_C_D` (order included) | 0 | 48 | 100 % — fixed this pass, §4a |
 | `planets.degree` | 9 | 9 | +1.5″ … +10.1″, §3 |
 | `vimsottari_dasa` end stamps | 5 | 5 | constant +2 h 58 m 58 s, §3 |
 | `sunrise` / `sunset` | 2 | 2 | +8 s / −7 s, §4 |
@@ -98,7 +100,8 @@ The two conventions are documented side by side in `AGENTS.md`.
 * All five Vimshottari lords.
 * `ruling_planets` in full.
 * All twelve cusps: `name`, `sign`, `sg`, `sl`, `sb`, `ss`.
-* All 48 `signifies_A_B_C_D` memberships; both `nodes_representation` house
+* All nine `signifies` rows and all 48 `signifies_A_B_C_D` lists —
+  membership **and order** (see §4a); both `nodes_representation` house
   and planet lists.
 * The whole `legend`.
 
@@ -115,7 +118,7 @@ Semantics confirmed against the reference, for the record:
 * `nodes_representation.planets` = the node's star-lord plus the lord of the
   sign the node occupies.
 
-## 3. Sub-arcsecond input residuals (not kpastro bugs)
+## 3. Sub-arcsecond input residuals (convention unknown; not fitted)
 
 **Planets.** kpastro runs ahead of the reference by a near-constant amount:
 
@@ -123,55 +126,79 @@ Semantics confirmed against the reference, for the record:
 | :-- | --: | --: | --: | --: | --: | --: | --: | --: | --: |
 | kpastro − ref | +9.2″ | +1.5″ | +9.7″ | +9.8″ | +9.6″ | +10.1″ | +9.8″ | +9.5″ | +9.5″ |
 
-Not an ayanamsa difference: the reference *prints* 24°08′28″ and kpastro
-computes 24°08′27.791″, 0.21″ apart, and a uniform ayanamsa shift would move
-the Moon by the same 9.5″ as the rest. Not a time difference either — that
-would move the Moon ~47 000× faster than the Sun. Consistent with KP Stellar
-using its own truncated planetary series. The residual never crosses a
-sub-lord boundary here, which is why all 45 lord columns still match.
+**Cause: convention unknown.** kpastro subtracts the *mean* ayanamsa
+(`swe.get_ayanamsa_ut`) from *apparent* tropical longitudes. Swiss Ephemeris's
+own sidereal path subtracts the nutation-inclusive value (Δψ ≈ 8.042″ at this
+epoch, −0.558″ at the 2024-12-18 `kp_new` calibration epoch), and the manual
+warns against mixing the two. Removing nutation brings the seven non-Moon
+bodies to +1.2″…+2.1″ but moves the Moon to −6.5″, while the dasha (below)
+says the reference Moon is ours −0.907″. Measured variants (NONUT, TRUEPOS,
+NOABERR, MOSEPH, ICRS, `FLG_SIDEREAL`, mean/true ayanamsa, ±20 s time offsets):
+no single documented convention puts all nine bodies within 2″; a fitted
++8…+14 s time offset plus the nutation-free family comes within 1.86″, but
+nothing documents such an offset. The residual never crosses a sub-lord
+boundary here, which is why all 45 lord columns still match.
+Tables: `diagnositics/findings_planets_dasha.md`.
 
 **Dasha end stamps.** All five differ by *exactly* +2 h 58 m 58 s, so the
-durations agree and only the epoch does. That offset is the ~0.9–1.5″ Moon
-difference seen through an 18-year Rahu mahadasha
-(0.124 d / 6574.5 d × 13.333° = 0.91″). Fixing it would mean changing the Moon.
+durations agree and only the epoch does. The dasha stack is driven by the
+sidereal Moon longitude with sensitivity ≈ **3.29 h per arcsecond** in a Rahu
+mahadasha; the constant offset corresponds to a Moon residual of **−0.907″**.
+No documented Moon convention (NONUT, TRUEPOS, NOABERR, MOSEPH, topocentric,
+ET/UT, node mode) produces it; the closest fits are fitted constants, which
+the ground rules forbid. Fixing it would mean changing the Moon.
+The truncation-vs-half-up display rule stays unresolved: under truncation the
+printed Moon and the dasha agree; under half-up they do not.
 
-## 4. The remaining 24 differences, in full
+## 4. The remaining 18 differences, in full
 
 ```
 /horary_details/sunrise                  06:36:48  vs  06:36:56   (+8 s)
 /horary_details/sunset                   17:59:22  vs  17:59:15   (-7 s)
 /vimsottari_dasa/{5 levels}/end           constant +2 h 58 m 58 s          §3
 /planets/{9 planets}/degree               +1.5" .. +10.1"                  §3
-/planets/{SUN,MOO,VEN}/signifies          row order only
-/cusps/{3,9}/degree                       17°20'10" vs 17°20'11"           (1")
-/cusps/3/signifies_A_B_C_D                ['VEN','RAH'] vs ['RAH','VEN']   (order)
-/cusps/8/signifies_A_B_C_D                ['VEN','RAH'] vs ['RAH','VEN']   (order)
-/cusps/11/signifies_A_B_C_D               ['VEN','RAH','MER','KET'] vs
-                                          ['RAH','MER','KET','VEN']        (order)
+/cusps/{3,9}/degree                       17°20'10" vs 17°20'11"           (0.88")
 ```
+
+Each is pinned as `xfail(strict=True)` with its measured value in
+`tests/test_kp_stellar_strict.py` (`KNOWN_RESIDUALS`), and the current values
+are pinned in `KNOWN_OURS` so drift fails the suite rather than hiding in an
+xfail.
 
 **Cusps 3 and 9.** The same point, 180° apart. kpastro's value is 227.3363565°
 against the reference's 227.3361111° — **+0.88″**, which crosses the arcsecond
-rounding boundary; the other ten cusps agree to better than 0.3″. Sweeping the
-solved instant shows cusps 2, 3 and 4 all move ~14″ per second of time, so no
-single time offset fixes cusp 3 without breaking cusp 2 (11.92″ → correctly
-rounds to 12″). Neither a geodetic/geocentric swap nor any house system
-reproduces it: the four latitude combinations give −57″, +36″ and −22″. It is
-KP Stellar's Placidus cusp-3 iteration converging slightly short, and it is
-left alone rather than fitted to one sample.
+rounding boundary; the other ten cusps agree to better than 0.3″. The earlier
+"Placidus iteration converges a hair short" hypothesis is **disproved**: the
+Swiss stop-tolerance is compile-time (0.001″) with a fixed-point contraction
+factor ≈1e-4 (a 36″ tolerance moves cusp 3 by <1e-6″), and no documented
+`swe.houses`/`houses_ex` option (NONUT, SIDEREAL, TRUEPOS, MOSEPH, geodetic
+latitude) moves cusp 3 without moving others. Display rounding is also
+unresolved: cusp 3/9's 10.883″ only prints `10"` under truncation, but cusps
+2/8 (11.916″ → `12"`) and 6/12 (33.995″ → `34"`) require half-up.
+Table: `diagnositics/findings_cusp_sunrise.md`.
 
 **Sunrise / sunset.** kpastro uses the Sun's **disc centre with no refraction**
 (the panchanga convention) via `swe.rise_trans`. The reference's day is 15 s
-longer — the same order as the §3 planetary residual. Tested within 60 s.
+longer. Every documented atmosphere (Swiss 1013.25/10, IAU 1013.25/15, Meeus
+1010/10) misses by 2.2–2.5 min; the only fits are non-standard (an effective
+horizon ≈1.6–1.75′ below geometric — reproducible by a ~125 mbar atmosphere or
+a ~1.0 m observer height), so the current convention is kept.
+Table: `diagnositics/findings_cusp_sunrise.md`.
 
-**Row order.** kpastro emits `signifies` as [star-lord's occupied house, own
-house, houses the star-lord owns, houses the planet owns] and every
-`signifies_A_B_C_D` list in KP planet-table order. That reproduces 6 of 9 rows
-and 45 of 48 lists verbatim. KP Stellar's order for the six exceptions is not a
-function of anything in the chart — h5 class A wants planet-table order while
-h11 class A wants longitude-ascending — so with n=9 it cannot be fitted
-without over-fitting. They are named explicitly in the tests rather than hidden
-behind a set comparison.
+## 4a. Fixed this pass: signifies row order (18 leaves → 0)
+
+The 10 `planets.signifies` rows and 8 `cusps.signifies_A_B_C_D` elements that
+differed **in order only** are fixed by a chart-derived rule, stated before it
+was tested (`diagnositics/findings_signifies.md`): a planet no planet sits in
+the star of (KP Stellar's `*` flag) emits its signify groups with each pair
+flipped (own house before star-lord's house, own signs before the star-lord's
+signs), and `*`-flagged planets sort first inside `signifies_A_B_C_D` tiers,
+the rest in KP planet-table order. The rule reproduces all 9 rows and all 48
+tiers and broke none of the 51 previously-correct arrays; no fitted constant
+entered `src/`. Candidate rules R1/R3/T4/T5/T6 and their measured failures are
+tabulated in the findings file. Caveat: confirmed on n=1 chart — a second KP
+Stellar printout could falsify it, which is why
+`tests/test_signifies_order.py` pins all 57 arrays exactly.
 
 ## 5. Bugs found and fixed in kpastro
 
@@ -217,20 +244,37 @@ behind a set comparison.
 ## 6. Verification
 
 ```
-python -m pytest --no-cov      ->  139 passed, 4 failed
+venv/bin/python -m pytest --no-cov      ->  5 failed, 145 passed, 21 xfailed
 ```
 
-The 4 failures are the ones `AGENTS.md` documents as pre-existing and test-side
-(`test_quantize_deg_half_up_exact`, `test_fraction_algebra_values`,
-`test_balance_requantisation_bound`, `test_period_helpers`); their messages are
-byte-identical to before this work. `python -m pytest` also fails the
-`--cov-fail-under=85` gate, as documented.
+The 5 failures are the ones `AGENTS.md` documents as pre-existing and
+test-side (`test_kahan_sum_beats_naive`, `test_quantize_deg_half_up_exact`,
+`test_fraction_algebra_values`, `test_balance_requantisation_bound`,
+`test_period_helpers`). The 21 xfails are the 18 strict residual leaves plus
+the 3 converted reference tests (sunrise/sunset, planet degrees, dasha
+stamps), each carrying its measured residual in the reason string.
+`python -m pytest` also fails the `--cov-fail-under=85` gate, as documented.
 
-New tests:
+Tests:
 
-* `tests/test_kp_stellar_reference.py` (18) — field-by-field against the
-  committed reference, including the horary-lagna proof and an explicit list of
-  every ordering-only residual.
-* `tests/test_horary.py` (14) — the 249-division table, and
+* `tests/test_kp_stellar_reference.py` — field-by-field against the
+  committed reference, including the horary-lagna proof; the formerly
+  tolerance-based assertions are now exact + `xfail(strict=True)`.
+* `tests/test_kp_stellar_strict.py` — recursive type-aware leaf comparison;
+  asserts exactly 18 differing leaves, pins their set (`KNOWN_RESIDUALS`) and
+  their current values (`KNOWN_OURS`), one strict xfail per residual.
+* `tests/test_signifies_order.py` — all 9 `signifies` rows and all 48 tiers
+  hard-coded exact.
+* `tests/test_horary.py` — the 249-division table, and
   `cusps_from_horary_lagna` checked against an independent ascendant solve that
   shares no code with the function under test.
+
+## 7. What would close the remaining residuals
+
+One further KP Stellar printout (any date/place, same schema, same "KP New"
+setting) would let us test: (i) truncation vs half-up on ≥20 printed angles,
+(ii) whether the nutation-consistent ayanamsa family recurs, (iii) whether a
+small time offset recurs, (iv) whether the `*`-flag ordering rule survives a
+second chart. The `temp_kp*.json` files `AGENTS.md` used to mention are **not**
+on `main` (branches `qwen` / `error-free-astrology-repo-upgrades-5d780` only)
+and are kpastro's own long-form schema anyway — not independent references.

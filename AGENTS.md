@@ -46,9 +46,10 @@ python -m kpastro download-ephemeris
 
 ### `python -m pytest` FAILS on a fresh checkout (verified)
 
-The existing `venv/` has `kpastro` + `pyswisseph` but **not** pytest — activate
-it and you get `No module named pytest`. After `pip install -e .[dev]`, the run
-still reports **5 failures + a coverage-gate failure** (`--cov-fail-under=85`,
+The existing `venv/` now has `kpastro` + `pyswisseph` + pytest 9.1.1 +
+pytest-cov (verified 19 Oct 2026); use `venv/bin/python -m pytest --no-cov`.
+Even after `pip install -e .[dev]` on a fresh machine the run reports
+**5 failures + a coverage-gate failure** (`--cov-fail-under=85`,
 actual ~48%). This is pre-existing, not something you broke:
 
 - `test_kahan_sum_beats_naive` — asserts naive `sum([1e16,1,-1e16,1]) != 2.0`;
@@ -67,6 +68,14 @@ these tests, use `--no-cov` and treat the *passing* tests as the signal. On
 CPython 3.11 `test_kahan_sum_beats_naive` passes, so the baseline there is
 4 failures rather than 5. Coverage is thin in `rectification.py`,
 `significators.py`, `cli.py`, `chart.py` (all < 50%).
+
+Current green baseline (19 Oct 2026): `venv/bin/python -m pytest --no-cov`
+→ **5 failed, 145 passed, 21 xfailed**. The 21 xfails are *intentional*:
+18 are the recorded KP Stellar residuals in `tests/test_kp_stellar_strict.py`
+(strict, with measured values; `KNOWN_OURS` pins them so drift fails the
+suite) and 3 are the converted tolerance tests in
+`tests/test_kp_stellar_reference.py`. A residual being fixed flips its xfail
+to a failure on purpose — update the table when that happens.
 
 ## Ephemeris files
 
@@ -135,10 +144,44 @@ CPython 3.11 `test_kahan_sum_beats_naive` passes, so the baseline there is
 
 ## KP Stellar compatibility
 
-KP Stellar reference outputs exist in the repo as committed artifacts:
-`temp_kp.json` (mode `kp`), `temp_kp_test2.json` and `temp_kp_test3.json`
-(mode `kp_new`), `temp_final.md` (text render), and `kp_stellar_output.json`
-(a full printout-schema export; see `KP_STELLAR_RECONCILIATION.md`).
+The only KP Stellar**-sourced** artifact on `main` is `kp_stellar_output.json`
+(a full printout-schema export; see `KP_STELLAR_RECONCILIATION.md`,
+`KP_STELLAR_DIFF.md`). The `temp_kp*.json` / `temp_final.md` files this
+section used to list are **not on `main`** (branches `qwen` /
+`error-free-astrology-repo-upgrades-5d780` only) and are kpastro's own
+long-form schema anyway — not independent references. A genuine *second*
+KP Stellar printout (any date/place, same schema) is still needed to confirm
+the open conventions below.
+
+Current state against `kp_stellar_output.json` (pinned command in
+`KP_STELLAR_DIFF.md`): **304 of 322 leaves exact**; the 18 residuals are
+recorded as strict xfails in `tests/test_kp_stellar_strict.py`:
+
+- 9 planetary degrees +1.53″ (Moon) … +10.13″ — **convention unknown**.
+  Leading hypothesis: kpastro subtracts the *mean* ayanamsa
+  (`swe.get_ayanamsa_ut`) from *apparent* longitudes, while Swiss Ephemeris's
+  sidereal path subtracts the nutation-inclusive value (Δψ ≈ 8.04″ at the
+  reference epoch, −0.56″ at the 2024-12-18 `kp_new` calibration epoch).
+  Removing nutation fixes the seven non-Moon bodies (+1.2…+2.1″) but moves
+  the Moon to −6.5″, while the dasha implies the reference Moon is ours
+  −0.907″. No documented convention brings all nine within 2″.
+- 5 dasha end stamps: constant **+2 h 58 m 58 s** (reference later). Dasha
+  sensitivity to the sidereal Moon is ≈ **3.29 h per arcsecond** in a Rahu
+  mahadasha; the offset ≙ a Moon residual of −0.907″. No documented Moon
+  convention reproduces it.
+- sunrise/sunset +8 s/−7 s (no documented atmosphere/refraction matches);
+  cusps 3/9 +0.88″ (no documented `houses` option moves cusp 3 alone).
+- The truncation-vs-half-up **display rule is unresolved**: truncation
+  explains cusps 3/9 and the dasha-consistent Moon; half-up explains cusps
+  2/8/6/12 and the printed ayanamsa.
+- Signifies **row order is fixed** by the `*`-flag rule (a planet no planet
+  sits in the star of flips its group pairs and sorts first in cusp tiers) —
+  stated and measured in `diagnositics/findings_signifies.md`, pinned in
+  `tests/test_signifies_order.py`; confirmed on n=1 chart, falsifiable by
+  the next reference.
+
+Probe scripts and full findings live under `diagnositics/` (note the typo'd
+directory name — it is pre-existing; do not rename).
 
 Two emitters, do not conflate them: `chart_to_kp_stellar_json` emits the KP
 Stellar printout schema (`horary_details` / `vimsottari_dasa` / `ruling_planets`
@@ -172,9 +215,11 @@ When reconciling with a supplied KP Stellar reference:
 - Preserve existing behavior. No unrelated refactoring, no dependency adds,
   no reformatting. Make the smallest change that satisfies the request.
 - Several files are committed that look like junk or scratch output —
-  `.DS_Store`, `src/kpastro/__pycache__/*.pyc`, `src/kpastro.egg-info/`,
-  `temp_*.json`, `temp_final.md`. Leave them alone unless explicitly asked;
-  the `temp_*` files are KP Stellar references (see above).
+  `.DS_Store`, `src/kpastro/__pycache__/*.pyc`, `src/kpastro.egg-info/`.
+  Leave them alone unless explicitly asked.
+- `kpastro_actual2.md` is plain JSON (a CLI serialization, despite the `.md`
+  extension); `kpastro_actual2.json` is its identical copy. Regenerate both
+  from the pinned command in `KP_STELLAR_DIFF.md` — never edit by hand.
 - Version is declared in two places and currently disagrees: `pyproject.toml`
   says `0.3.0`, `kpastro/__init__.py` fallback says `0.3.1`. Keep them in sync
   when bumping.

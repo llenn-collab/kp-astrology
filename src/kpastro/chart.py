@@ -706,11 +706,15 @@ def render_chart_json(
 #
 # * A planet's ``signifies`` list is emitted in the group order
 #   ``star-lord's occupied house, own house, houses the star-lord owns,
-#   houses the planet owns`` (deduplicated).  This reproduces 6 of the 9
-#   reference rows byte-for-byte; KP Stellar's own row order for the other
-#   three is not a function of anything in the chart and is not reproducible.
-#   The trailing parenthesised element, e.g. ``"(IV, VIII)"``, is the set of
-#   houses whose **cusp sub-lord** is that planet, printed in Roman numerals.
+#   houses the planet owns`` (deduplicated) -- except for a planet that no
+#   other planet sits in the star of (KP Stellar's ``*`` flag), where each
+#   pair flips to ``own house, star-lord's occupied house, houses the planet
+#   owns, houses the star-lord owns``.  That star-flag rule reproduces all
+#   nine reference rows byte-for-byte (TASK2.md §2.E).  The trailing
+#   parenthesised element, e.g. ``"(IV, VIII)"``, is the set of houses whose
+#   **cusp sub-lord** is that planet, printed in Roman numerals.
+# * A ``signifies_A_B_C_D`` tier is sorted in KP planet-table order with the
+#   same ``*``-flagged planets placed first (TASK2.md §2.E).
 # * The trailing ``nodes_representation`` block is the node's *star-lord* and
 #   the *lord of the sign the node occupies* (not the sign-lord of the cusp
 #   the node happens to sit in), together with the union of those two agents'
@@ -727,11 +731,20 @@ def _kp_abbr(name: str) -> str:
     return KP_PLANET_ABBR.get(name, name)
 
 
-def _kp_sorted(names: Iterable[str]) -> list[str]:
-    """Sort planet names into KP Stellar's fixed planet-table order."""
+def _kp_sorted(names: Iterable[str], star_flag: frozenset[str] = frozenset()) -> list[str]:
+    """Sort planet names into KP Stellar's fixed planet-table order.
+
+    ``star_flag`` holds the planets no planet (their own star included) sits
+    in the star of -- KP Stellar's ``*`` planets -- which sort ahead of the
+    rest; within either half the fixed planet-table order applies (every
+    category member is in that table, so the sort key is unique).
+    """
     return sorted(
         set(names),
-        key=lambda n: KP_PLANET_ORDER.index(n) if n in KP_PLANET_ORDER else 99,
+        key=lambda n: (
+            0 if n in star_flag else 1,
+            KP_PLANET_ORDER.index(n) if n in KP_PLANET_ORDER else 99,
+        ),
     )
 
 
@@ -768,6 +781,7 @@ def _signifies_ordered(
         return sorted(h for h, lord in cusp_sign_lord.items() if lord == planet)
 
     out: dict[str, list[str]] = {}
+    flags = _planet_flags(chart)
     for p in chart.planets:
         sl = star_lord[p.name]
         groups: list[list[int]] = [
@@ -776,9 +790,12 @@ def _signifies_ordered(
             owns(sl) if sl in cusp_sign_lord.values() else [],
             owns(p.name),
         ]
+        # KP Stellar's ``*`` flag (no planet sits in this planet's star) flips
+        # each pair of groups: own side before the star-lord's side (§2.E).
+        order = (1, 0, 3, 2) if "*" in flags[p.name] else (0, 1, 2, 3)
         seen: list[int] = []
-        for group in groups:
-            for h in group:
+        for gi in order:
+            for h in groups[gi]:
                 if h not in seen:
                     seen.append(h)
         entry = [str(h) for h in seen]
@@ -864,6 +881,7 @@ def chart_to_kp_stellar_json(
     extra = _cusp_sublord_houses(chart)
     signifies = _signifies_ordered(chart, extra)
     flags = _planet_flags(chart)
+    star_flag = frozenset(n for n, f in flags.items() if "*" in f)
     nodes = _node_agency(chart, _planet_significator_houses(chart, sig_map))
 
     planets: dict[str, dict] = {}
@@ -893,10 +911,10 @@ def chart_to_kp_stellar_json(
             "sb": _kp_abbr(c.sub_lord),
             "ss": _kp_abbr(c.sub_sub_lord),
             "signifies_A_B_C_D": [
-                [_kp_abbr(n) for n in _kp_sorted(cats["planets_in_star_of_planets_in_house"])],
-                [_kp_abbr(n) for n in _kp_sorted(cats["planets_in_house"])],
-                [_kp_abbr(n) for n in _kp_sorted(cats["planets_in_star_of_house_lord"])],
-                [_kp_abbr(n) for n in _kp_sorted(cats["sign_lord"])],
+                [_kp_abbr(n) for n in _kp_sorted(cats["planets_in_star_of_planets_in_house"], star_flag)],
+                [_kp_abbr(n) for n in _kp_sorted(cats["planets_in_house"], star_flag)],
+                [_kp_abbr(n) for n in _kp_sorted(cats["planets_in_star_of_house_lord"], star_flag)],
+                [_kp_abbr(n) for n in _kp_sorted(cats["sign_lord"], star_flag)],
             ],
         }
 

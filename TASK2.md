@@ -1,6 +1,18 @@
 # TASK2: Close the remaining KP Stellar residuals in the reference-compatible output
 
-Status: **open**. This file supersedes `TASK.md`. Most of `TASK.md` is already implemented in the code (see §1). What remains is numerical: the output is 286 of 322 reference leaves exact (88.8 %). This task is to close as much of the remaining 36 as the evidence supports, and to say plainly what cannot be closed.
+Status: **executed 19 Oct 2026** (this file supersedes `TASK.md`, which is no
+longer in the repo). Outcome: 286 → **304 of 322 leaves exact**; the 18
+ordering leaves were fixed by the `*`-flag rule (§2.E, implemented in
+`chart.py`, pinned in `tests/test_signifies_order.py`); every other residual
+hit its stop rule and is recorded as `xfail(strict=True)` with measured values
+in `tests/test_kp_stellar_strict.py`. See `KP_STELLAR_DIFF.md` (final numbers),
+`diagnositics/findings_*.md` (probe tables, including failed hypotheses), and
+`KP_STELLAR_RECONCILIATION.md` (narrative). Suite: 5 failed (the documented
+pre-existing `test_precision.py` ones) / 145 passed / 21 xfailed. Owner asks
+(§7): a second KP Stellar printout is still needed; `TASK.md` was already
+absent, so no archive was made.
+
+This file supersedes `TASK.md`. Most of `TASK.md` is already implemented in the code (see §1). What remains is numerical: the output is 286 of 322 reference leaves exact (88.8 %). This task is to close as much of the remaining 36 as the evidence supports, and to say plainly what cannot be closed.
 
 Read `AGENTS.md` first. Its invariants still apply: milliarcsecond core, boundary policy, `kp_new` offset, geocentric house latitude, dasha year = 365.25 d, no dependency adds, no reformatting, and `python -m pytest` baseline failures.
 
@@ -22,7 +34,7 @@ Read `AGENTS.md` first. Its invariants still apply: milliarcsecond core, boundar
 | 4. Chart instant / coordinates | **Done.** UTC resolves to `2026-10-30 06:30:00`; full-precision lat/lon used | `test_chart_instant_resolves_to_2026_10_30_0630_utc` |
 | 5. House-derived fields | **Mostly done.** All `planets[*].house`, cusp signs, cusp `sg/sl/sb/ss`, nodes match | diff run below |
 | 6. Deterministic dasha | **Done.** `--query-utc` is honoured by `natal` and `horary` | `test_dasha_stack_is_deterministic_for_pinned_query_utc` |
-| 1. `kpastro_actual2.md` as JSON | **Open.** The committed file is still the text report | `kpastro_actual2.md` in repo |
+| 1. `kpastro_actual2.md` as JSON | **Done.** Regenerated as plain JSON from the CLI serializer 19 Oct 2026; `python -m json.tool` passes; `kpastro_actual2.json` is an identical copy | `kpastro_actual2.md` / `.json` in repo |
 
 The pasted analysis in the task prompt (“Sookshma ends 13 days later”, “+9 to +10″ planets as the blocker”) was computed from `kpastro_actual3.json`, which is stale. With the pinned command the current code's sub-period error is **2 h 58 m 58 s at every level**, not 13 days. See §2.A.
 
@@ -62,7 +74,7 @@ The earlier draft of this file called the reference internally inconsistent. Tha
 
 - Under **half-up** rounding the printed Moon `08°31'49″` requires a shift of (−2.03″, −1.03″] from ours (ours = 30710.531″). The dasha needs −0.91″. The windows do not overlap.
 - Under **truncation** the printed Moon requires (−1.53″, −0.53″], which **contains** −0.91″. No conflict.
-- Evidence on the rule is mixed: truncation explains cusps 3/9 (exact 10.883″, printed 10″) but not cusps 2/8 or 6/12 (exact 71.916″, 53.995″, printed 72″, 54″); half-up explains those but not 3/9. A scan of the ayanamsa offset (K = 49.0 … 50.7″) under both rules never gets past 10 of 12 cusps, so the cusps cannot settle it. The printed ayanamsa 24°08'28″ (ours 27.79″) favours half-up unless the reference value is ≥ 28.0″.
+- Evidence on the rule is mixed: truncation explains cusps 3/9 (exact 10.883″, printed 10″) but not cusps 2/8 or 6/12 (exact seconds fields 11.916″, 33.995″, printed 12″, 34″); half-up explains those but not 3/9. A scan of the ayanamsa offset (K = 49.0 … 50.7″) under both rules never gets past 10 of 12 cusps, so the cusps cannot settle it. The printed ayanamsa 24°08'28″ (ours 27.79″) favours half-up unless the reference value is ≥ 28.0″.
 - Moon time-base probe (`dt` seconds applied to the Moon only): the dasha needs **−1.66 s**; the printed Moon is satisfied by −2 s and −3 s under half-up, and by −1 s … −2 s under truncation. So under truncation a single Moon time/position shift reproduces both. Treat the rounding rule as **unresolved**.
 
 Stop rule for §2.A: if the rounding rule cannot be settled from a second KP Stellar printout, leave the dasha test as `xfail(strict=True)` with the 10,738 s / 31 s numbers in the reason, and do **not** add a Moon offset to `src/`.
