@@ -278,3 +278,49 @@ small time offset recurs, (iv) whether the `*`-flag ordering rule survives a
 second chart. The `temp_kp*.json` files `AGENTS.md` used to mention are **not**
 on `main` (branches `qwen` / `error-free-astrology-repo-upgrades-5d780` only)
 and are kpastro's own long-form schema anyway — not independent references.
+
+---
+
+## Addendum — sets 5 and 6 (2024-06-01)
+
+The added snapshots are compared reproducibly by
+`python diagnositics/moon_alignment_sets_5_6.py`.
+
+| Check | KP Stellar Moon | kpastro Moon | Moon correction implied by Saturn MD end |
+| :-- | --: | --: | --: |
+| Set 5 — 09:09:09 IST, Delhi | Pisces 06°00′09″ | Pisces 06°00′03″ | +6.268″ |
+| Set 6 — 10:39:09 IST, Sholapur | Pisces 06°53′31″ | Pisces 06°53′24″ | +6.294″ |
+
+The display residuals are limited by whole-arcsecond truncation. The dasha
+constraint is more precise: the Saturn mahadasha endpoints differ by +78,295 s
+and +78,621 s (kpastro later than KP Stellar). For a 19-year Saturn mahadasha,
+the exact longitude sensitivity under the 13°20′ nakshatra partition is
+12,491.55 seconds per arcsecond, implying +6.268″ and +6.294″ respectively.
+Both sets therefore support essentially the same correction at the June 2024
+epoch, even though the second input is 90 minutes later.
+
+The reference set 4 (Sholapur) and set 5 (Delhi) have identical Moon longitude
+and Saturn mahadasha end time at the same instant. That supports a geocentric,
+not topocentric, reference Moon. The 90-minute pair also shows nearly the same
+residual, but it cannot distinguish a constant angular offset from a small
+Moon-only timing/model difference: the lunar angular speed changes too little
+over 90 minutes for these snapshots to separate those hypotheses.
+
+The 2026 set 1 requires approximately +7.8″ against the current mean-equinox
+calculation, versus approximately +6.28″ from the 2024 dasha stamps. A single
+constant Moon offset would leave around 0.7–0.8″ of residual. That sounds small
+for a displayed longitude, but it translates into multiple hours of dasha
+timing error (the sensitivity is roughly 3.3–3.5 hours per arcsecond). The
+existing `kpastro_actual4.json` snapshot predates the current ayanamsa
+calibration and should not be used as the second location comparison; compare
+the two KP Stellar references for the place-invariance check.
+
+**No production Moon correction is applied from these two sets alone.** A
+fitted constant can make the printed degree look closer while leaving the
+dasha timestamps materially wrong. These checks eliminate topocentric
+handling, but do not yet identify the lunar model or epoch-dependent effect.
+A further printout at a different date/year (or a longer time baseline) is
+needed before selecting a default correction. The diagnostic intentionally
+records the measured constraints rather than embedding a fitted value in
+`src/kpastro/ephemeris.py`.
+
