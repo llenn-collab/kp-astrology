@@ -1,272 +1,438 @@
-# kpastro — KP Astrology (Krishnamurti Paddhati) Engine for Python
+# kpastro — KP Astrology Engine for Python
 
-A precise Krishnamurti Paddhati (KP) Vedic astrology engine in pure Python, powered by the Swiss Ephemeris for arc-second accuracy.
+A Python engine for Krishnamurti Paddhati (KP) astrology calculations, using Swiss Ephemeris for planetary positions and Placidus houses, with KP star/sub/sub-sub-lord calculations, Vimshottari dasha, significators, ruling planets, panchanga helpers, horary charts, and birth-time rectification.
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue.svg)](https://www.python.org/)
-[![Krishnamurti Paddhati](https://img.shields.io/badge/Krishnamurti%20Paddhati-Vedic%20Jyotish-6a3d9a.svg)](https://en.wikipedia.org/wiki/Krishnamurti_Paddhati)
-[![Status](https://img.shields.io/badge/status-active-brightgreen.svg)](https://github.com/Rituparno-Majumdar/kp-astrology)
-[![Swiss Ephemeris powered](https://img.shields.io/badge/powered%20by-Swiss%20Ephemeris-orange.svg)](https://www.astro.com/swisseph/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
+[![Swiss Ephemeris](https://img.shields.io/badge/ephemeris-Swiss%20Ephemeris-orange.svg)](https://www.astro.com/swisseph/)
 
----
+## Contents
 
-## What is KP Astrology?
+- [Features](#features)
+- [Install](#install)
+- [Ephemeris files and precision](#ephemeris-files-and-precision)
+- [Quick start](#quick-start)
+- [KP horary number and chart format](#kp-horary-number-and-chart-format)
+- [CLI reference](#cli-reference)
+- [Python API](#python-api)
+- [Calculation conventions](#calculation-conventions)
+- [Project layout](#project-layout)
+- [Development and tests](#development-and-tests)
+- [Citation, license, and disclaimer](#citation-license-and-disclaimer)
 
-Krishnamurti Paddhati (KP) is a stellar system of Vedic astrology developed by Prof. K. S. Krishnamurti that refines the 27 nakshatras into smaller **sub-lord** and **sub-sub-lord** divisions, so every chart point carries a precise ruling chain: *star-lord, sub-lord, sub-sub-lord*. Because a birth Moon sits inside one of 249 narrow zodiacal divisions, KP timing (Vimshottari dasha) and event judgment (significators, horary) reach a granularity classical jyotish does not.
+## Features
 
-**Why Swiss Ephemeris precision** — the engine computes every planet and house cusp with the industry-standard Swiss Ephemeris (arc-second accurate), then converts to the sidereal zodiac with a configurable ayanamsa. A silent Moshier fallback keeps the package working even with no data files installed; downloading the official ephemeris files unlocks full JPL/VSOP87 precision.
-
-## Key features
-
-- **Ayanamsa** — Lahiri (Chitrapaksha, KP default), KP (`SE_SIDM_KRISHNAMURTI_VP291`) and KP-old (Krishnamurti's table).
-- **Nakshatra subdivision** — star-lord, sub-lord and sub-sub-lord chains for every planet and house cusp.
-- **Placidus cusps** — computed sidereally from the Swiss Ephemeris, with full KP lord chains on each cusp.
-- **Vimshottari dasha** — mahadasha / antardasha / pratyantar-dasha with birth balances computed at all three levels (MD/AD/PD).
-- **Significators** — Grah and Bhaav Nirdeshan: house and planet significators with 4-tier ranking.
-- **Ruling planets** — day-lord, ascendant-lord and Moon-lord for the moment.
-- **KP horary** — the 1-249 division number system with the horary ascendant taken as the division midpoint.
-- **Birth-time rectification** — recover an unknown/approximate birth time from dated life events judged to fall in specific KP houses; each candidate minute is scored by lagna sub-lord + dasha + optional ruling-planet and a weak sibling hint, with a posterior-band range (75% mass, NOT a statistical credible interval) and a Jupiter/Saturn transit cross-check.
-- **CLI + Python API** — everything available as a typed library *and* as a `kpastro` command-line tool.
+- **KP planetary and cusp details:** sidereal longitudes, signs, nakshatras, star-lords, sub-lords, and sub-sub-lords.
+- **Ayanamsa modes:** Lahiri (default), KP / VP291, KP-old, and KP-new.
+- **Placidus houses:** sidereal house cusps with KP lord details.
+- **Vimshottari dasha:** mahadasha and nested antardasha/pratyantar-dasha periods, with deeper Sookshma and Prana levels for chart output.
+- **Significators and ruling planets:** planet-to-house and house-to-planet significations, plus ruling-planet calculations.
+- **KP horary (Prashna):** the specialised 1–249 number system.
+- **Panchanga helpers:** sunrise/sunset and related calendar elements exposed through the Python package.
+- **Birth-time rectification:** candidate-time scoring from dated life events, with supporting transit and interval helpers.
+- **CLI and Python API:** use the same calculation engine from the terminal or from Python.
+- **Offline-first calculation:** no remote astrology API is required at runtime. Downloading ephemeris data requires an internet connection.
 
 ## Install
 
-Requires **Python 3.9+**.
+Requires Python 3.9 or later.
 
-```bash
-# editable install for development
-pip install -e .
+From a checkout of this repository:
 
-# with the dev/test extras
-pip install -e .[dev]
-```
+    git clone https://github.com/llenn-collab/kp-astrology.git
+    cd kp-astrology
+    python -m venv .venv
 
-`pyswisseph` is the only runtime dependency. On very new CPython releases a source build may be needed; ensure a C compiler is available (or install a pre-built wheel) if the binary wheel is not yet published.
+Activate the virtual environment before installing. On Linux/macOS:
 
-## Why choose kpastro?
+    source .venv/bin/activate
 
-| Feature | kpastro | Generalist Libraries | API-only Tools |
-| :--- | :--- | :--- | :--- |
-| **KP Specialization** | **High (249-Division)** | Low/None | Variable |
-| **Precision** | **Arc-second (Swiss Ephemeris)** | Variable | High |
-| **Deployment** | **Offline-first (No API)** | Varies | Requires Internet |
-| **Integrability** | **Designed as an engine** | Complex/Bloated | Locked to Cloud |
+On Windows PowerShell:
 
-`kpastro` is built as an **offline-first computational engine**. It is designed for developers who need high-precision, sub-second KP system calculations (star-lord, sub-lord, sub-sub-lord) without the overhead of cloud APIs or the bloat of general-purpose astrological frameworks.
+    .venv\Scripts\Activate.ps1
 
----
+Install the package:
 
-## Integrating kpastro into your project
+    python -m pip install --upgrade pip
+    python -m pip install -e .
 
-`kpastro` is designed to be easily embeddable. If you are building a larger astrological system and need high-precision KP-system subdivision math (star-lord, sub-lord, sub-sub-lord) without reinventing the wheel, simply import the engine:
+Install development and test dependencies too:
 
-```python
-from kpastro.vedic import point_info
+    python -m pip install -e ".[dev]"
 
-# Pass any sidereal longitude (0-360°) to get the full KP breakdown
-data = point_info(150.5) 
-print(f\"Sub-lord: {data.sub_lord}\")
-print(f\"Sub-sub-lord: {data.sub_sub_lord}\")
-```
+The runtime dependency is pyswisseph. The command-line interface can be invoked as either python -m kpastro or, after installation, kpastro.
 
-This makes `kpastro` an ideal **high-precision subsystem** for larger libraries.
+Check the available commands:
 
----
+    python -m kpastro --help
+    python -m kpastro --version
+    python -m kpastro natal --help
+    python -m kpastro horary --help
 
-## Quick start (CLI)
+## Ephemeris files and precision
 
+### Download the default data files
 
-```bash
-# Complete KP birth chart (New Delhi)
-python -m kpastro natal --date 1990-01-15 --time 14:30 --tz 5.5 \
-    --lat 28.6139 --lon 77.2090 --place "New Delhi"
+Run:
 
-# KP horary (Prashna) from number 45
-python -m kpastro horary --number 45 --date 2026-08-20 --time 10:30 \
-    --tz 5.5 --lat 28.61 --lon 77.20
+    python -m kpastro download-ephemeris
 
-# Ayanamsa value on a date
-python -m kpastro ayanamsa --date 2026-08-20
+By default, the downloader installs these Swiss Ephemeris data files under **~/.kpastro/ephe**:
 
-# Download the Swiss Ephemeris data files for full precision
-python -m kpastro download-ephemeris
-```
+- **sepl_18.se1**
+- **semo_18.se1**
+- **seas_18.se1**
 
-Other subcommands: `dasha`, `rulings`. Run `python -m kpastro --help` for all options.
+They are not bundled in the repository. The downloader validates that downloaded files are large enough to be plausible ephemeris files and avoids replacing an existing file that already passes its size check.
+
+### Use a custom directory
+
+Pass a directory to the downloader:
+
+    python -m kpastro download-ephemeris --dir /path/to/ephe
+
+The download directory and the directory used for subsequent calculations are separate settings. To use the custom directory for CLI calculations, set **SE_EPHE_PATH** in the environment.
+
+Linux/macOS:
+
+    export SE_EPHE_PATH="/path/to/ephe"
+    python -m kpastro horary --number 117 --date 2026-10-30 --time 12:00 --tz 5.5 --lat 18.4593067 --lon 73.8654709 --ayanamsa kp_new
+
+Windows PowerShell:
+
+    $env:SE_EPHE_PATH = "C:\path\to\ephe"
+    python -m kpastro horary --number 117 --date 2026-10-30 --time 12:00 --tz 5.5 --lat 18.4593067 --lon 73.8654709 --ayanamsa kp_new
+
+The backend resolves the ephemeris directory in this order:
+
+1. An explicit ephe_path argument when constructing SwissEphemeris through the Python API.
+2. The **SE_EPHE_PATH** environment variable.
+3. The default **~/.kpastro/ephe** directory.
+
+The CLI does not have a general --ephe-path option. For CLI calculations, use the environment variable when the data files are outside the default directory.
+
+### Verify which ephemeris is active
+
+Missing data files do not prevent calculations. Swiss Ephemeris falls back to its built-in Moshier ephemeris when the required files are unavailable. That fallback is useful for running the engine, but results can differ from reference calculations; for KP Stellar comparisons, verify that the full data files are being used.
+
+Check the status with Python:
+
+    python -c "from kpastro import SwissEphemeris; e = SwissEphemeris(ayanamsa='kp_new'); print('precision:', e.precision); print('path:', e.ephe_path)"
+
+The precision value is **full** when all required files are present and pass the loader's size checks; otherwise it is **moshier**. Check this before investigating small differences against reference outputs. The ephemeris directory and its data files are local runtime assets, not source files that need to be committed to the repository.
+
+## Quick start
+
+### 1. Generate a natal chart
+
+The date and time are local to the supplied timezone offset. Latitude and longitude are geographic coordinates in decimal degrees.
+
+    python -m kpastro natal --date 1990-01-15 --time 14:30 --tz 5.5 --lat 28.6139 --lon 77.2090 --place "New Delhi"
+
+### 2. Generate a KP horary chart
+
+Select the querent's horary number from **1 to 249**. This example uses number 117:
+
+    python -m kpastro horary --number 117 --date 2026-10-30 --time 12:00:00 --tz 5.5 --lat 18.4593067 --lon 73.8654709 --place "Pune, India" --ayanamsa kp_new --node mean
+
+### 3. Emit JSON in the KP Stellar-compatible schema
+
+The chart commands support JSON output. The default JSON schema is **stellar**; use **--json-schema detailed** for the package's detailed schema.
+
+    SE_EPHE_PATH="$HOME/.kpastro/ephe" python -m kpastro horary --number 117 --date 2026-10-30 --time 12:00:00 --tz 5.5 --lat 18.4593067 --lon 73.8654709 --place "Pune, India" --ayanamsa kp_new --node mean --json --name "KPstellaroutput" --gender Male --timezone Asia/Kolkata --query-utc "2026-10-18 12:00:00"
+
+The fixed --query-utc value above matches the repository's reference-test setup. Use the query instant appropriate to your own calculation; it is a UTC timestamp used to resolve the dasha stack, not a replacement for the local chart date and time.
+
+### 4. Get the ayanamsa for a date
+
+    python -m kpastro ayanamsa --date 2026-10-30 --ayanamsa kp_new
+
+### 5. Download the ephemeris files
+
+    python -m kpastro download-ephemeris
+
+## KP horary number and chart format
+
+### Number range and JSON representation
+
+A KP horary number is an integer from **1 through 249**. The dedicated horary command accepts it as **--number N**. The natal command can also carry a specialised horary number using **--horary-no N**.
+
+In the default stellar JSON schema, the number is recorded in the horary details section in this format:
+
+    {
+      "horary_details": {
+        "horary_no": "117 (249)"
+      }
+    }
+
+This is an abbreviated fragment showing the field format, not the complete chart payload. The full output also contains planetary positions, house cusps, significators, ruling planets, and dasha-related data.
+
+### Important distinction: division midpoint versus chart cusp
+
+The backend exposes two related but distinct values:
+
+- **Division midpoint:** ascendant_from_kp_number(n) returns the selected division's midpoint and its sign/star/sub/sub-sub lord chain.
+- **Horary chart cusp:** the CLI chart-building paths use the selected division's **start degree** (start_deg) as the horary lagna for the house frame. The remaining Placidus cusps are constructed from that requested lagna.
+
+This distinction is intentional in the current implementation. Do not substitute the midpoint for the cusp when reproducing the backend's chart output. The chart's astronomical ascendant and ruling planets remain tied to the supplied date, time, and place; the horary number determines the house-cusp frame. Therefore, the astronomical ascendant and cusp 1 can be different, including belonging to different signs.
+
+The two CLI entry points are:
+
+- **Dedicated horary chart:** use python -m kpastro horary --number 117 ...
+- **Natal-style chart carrying a horary number:** use python -m kpastro natal --horary-no 117 .... This path is useful when reproducing the repository's KP Stellar reference command and metadata layout.
+
+Example of the second form:
+
+    SE_EPHE_PATH="$HOME/.kpastro/ephe" python -m kpastro natal --date 2026-10-30 --time 12:00:00 --tz 5.5 --lat 18.4593067 --lon 73.8654709 --place "Pune, India" --ayanamsa kp_new --node mean --json --name "KPstellaroutput" --gender Male --horary-no 117 --timezone Asia/Kolkata --query-utc "2026-10-18 12:00:00"
+
+Use **--number** for the dedicated horary subcommand and **--horary-no** for the natal subcommand. Both validate the supported number range.
+
+## CLI reference
+
+Run python -m kpastro --help for the live command list and each subcommand's --help for its complete options.
+
+| Command | Purpose |
+|---|---|
+| python -m kpastro natal ... | Compute a chart from the supplied date, local time, and place. |
+| python -m kpastro horary --number N ... | Compute a KP horary chart for number N. |
+| python -m kpastro dasha ... | Print the Vimshottari dasha timeline for the supplied chart data. |
+| python -m kpastro rulings ... | Print the ruling planets for the supplied moment and place. |
+| python -m kpastro ayanamsa --date YYYY-MM-DD | Print the configured ayanamsa value for the specified date. |
+| python -m kpastro download-ephemeris | Download the required Swiss Ephemeris data files. |
+
+### Common chart options
+
+The natal and horary commands accept these principal options:
+
+| Option | Meaning |
+|---|---|
+| --date YYYY-MM-DD | Local chart date. Defaults to the system date. |
+| --time HH:MM[:SS] | Local chart time. Defaults to 12:00. |
+| --tz HOURS | Local UTC offset in hours; defaults to +5.5. Use the offset that applies to the chart date and location. |
+| --lat DEGREES | Latitude in decimal degrees. Required. |
+| --lon DEGREES | Longitude in decimal degrees. Required. |
+| --place TEXT | Optional place label included in output. |
+| --ayanamsa MODE | lahiri (default), kp, kp_old, or kp_new. |
+| --node MODE | mean (default) or true. |
+| --json | Emit JSON instead of the standard text output. |
+| --json-schema SCHEMA | Choose stellar (default) or detailed for JSON output. |
+| --name TEXT | Name metadata for the JSON details section. |
+| --gender TEXT | Gender metadata for the JSON details section. |
+| --timezone ZONE | Optional IANA timezone label for the JSON details section, such as Asia/Kolkata. |
+| --query-utc INSTANT | Pin the UTC instant used to resolve the dasha stack. Accepts a date or a date-time such as 2026-10-18 12:00:00. |
+| --dasha-depth N | Dasha depth: 3 for MD/AD/PD, 4 to include Sookshma, or 5 to include Prana. Default is 5. |
+
+The natal command additionally accepts --horary-no N to attach a specialised horary number and build the house frame from its division cusp. The horary command instead requires --number N.
+
+When the current dasha stack must be reproducible, provide --query-utc explicitly. The natal command defaults that stack to the current UTC instant when the option is omitted; the horary command defaults it to the chart's own UTC instant. The local chart date/time and the UTC query timestamp serve different purposes.
 
 ## Python API
 
-```python
-from datetime import date, time
-from kpastro import (
-    BirthInfo, compute_chart, render_chart,
-    kp_divisions, ascendant_from_kp_number, cusps_from_horary_lagna,
-)
+The package exports the principal chart, ephemeris, horary, significator, dasha, and rectification functions from kpastro. JSON chart rendering is provided by kpastro.chart.
 
-birth = BirthInfo(
-    date=date(1990, 1, 15), time=time(14, 30),
-    latitude=28.6139, longitude=77.2090,
-    tz_hours=5.5, place="New Delhi",
-)
-chart = compute_chart(birth, ayanamsa="lahiri")
-print(render_chart(chart))
+### Compute a chart
 
-# KP horary: all 249 divisions, or the ascendant for one number
-divs = kp_divisions()                 # list of 249 HoraryDiv
-q = ascendant_from_kp_number(45)      # dict with ascendant + lord chain
+    from datetime import date, time
+    from kpastro import BirthInfo, compute_chart, render_chart
 
-# A horary chart takes its lagna from the number, not from the clock, so its
-# house cusps belong to that ascendant.  KP Stellar uses the division's cusp
-# (`start_deg`); `ascendant_from_kp_number` returns its midpoint.
-horary = compute_chart(
-    birth, ayanamsa="kp_new",
-    horary_lagna=divs[116].start_deg,   # -> horary.horary_lagna, horary.cusps
-)
-
-# The same twelve sidereal cusps straight from the horary layer, if you want
-# them without building a whole chart.
-from kpastro import SwissEphemeris
-with SwissEphemeris(ayanamsa="kp_new") as eph:
-    cusps = cusps_from_horary_lagna(
-        divs[116].start_deg, eph, horary.jd_ut, 28.6139, 77.2090,
+    birth = BirthInfo(
+        date=date(1990, 1, 15),
+        time=time(14, 30),
+        latitude=28.6139,
+        longitude=77.2090,
+        tz_hours=5.5,
+        place="New Delhi",
     )
-```
+    chart = compute_chart(birth, ayanamsa="lahiri")
+    print(render_chart(chart))
 
-`chart.planets`, `chart.cusps`, `chart.balance`, `chart.mahadashas`, `chart.current`,
-`chart.planet_significators` and `chart.ruling` give typed access to every KP layer.
+### Compute a horary chart with the backend's cusp convention
+
+    from datetime import date, time
+    from kpastro import BirthInfo, SwissEphemeris, compute_chart, kp_divisions
+
+    birth = BirthInfo(
+        date=date(2026, 10, 30),
+        time=time(12, 0),
+        latitude=18.4593067,
+        longitude=73.8654709,
+        tz_hours=5.5,
+        place="Pune, India",
+    )
+
+    horary_number = 117
+    division = kp_divisions()[horary_number - 1]
+    eph = SwissEphemeris(ayanamsa="kp_new", node="mean")
+
+    chart = compute_chart(
+        birth,
+        ayanamsa="kp_new",
+        node="mean",
+        eph=eph,
+        horary_lagna=division.start_deg,
+    )
+
+### Read the division midpoint separately
+
+    from kpastro import ascendant_from_kp_number, kp_divisions
+
+    number = 117
+    division = kp_divisions()[number - 1]
+    midpoint_details = ascendant_from_kp_number(number)
+
+    print("Division start:", division.start_deg)
+    print("Division end:", division.end_deg)
+    print("Division midpoint:", midpoint_details["ascendant"])
+    print("KP lord chain:", midpoint_details)
+
+The midpoint helper is useful when the application specifically needs the division midpoint. To reproduce CLI horary house cusps, pass the division's start_deg to compute_chart as horary_lagna.
+
+### Serialize chart JSON from Python
+
+    from datetime import datetime
+    from kpastro.chart import render_chart_json
+
+    query_utc = datetime(2026, 10, 18, 12, 0, 0)  # naive datetime interpreted as UTC
+    payload = render_chart_json(
+        chart,
+        schema="stellar",
+        query_utc=query_utc,
+        horary_no=117,
+        name="KPstellaroutput",
+        gender="Male",
+        timezone="Asia/Kolkata",
+    )
+    print(payload)
+
+For reproducible dasha output, pass the same query instant to compute_chart and render_chart_json. The JSON renderer accepts schema="stellar" or schema="detailed".
 
 ### Birth-time rectification
 
-When only an approximate birth time is known, dated life events mapped to KP
-houses can recover it:
+Rectification helpers accept an approximate birth record and dated life events associated with relevant KP houses. The available public API includes LifeEvent, rectify, and render_rectification.
 
-```python
-from datetime import date, time
-from kpastro import BirthInfo, LifeEvent, rectify, render_rectification
+    from datetime import date, time
+    from kpastro import BirthInfo, LifeEvent, rectify, render_rectification
 
-# Birth info approximate time
-birth = BirthInfo(date(1990, 1, 15), time(14, 30),
-                  28.6139, 77.2090, 5.5, 'New Delhi')
-events = [
-    LifeEvent(date(1995, 9, 3),  2, (), 'School admission'),
-    LifeEvent(date(2007, 4, 1),  4, (), 'Joined college'),
-    LifeEvent(date(2013, 2, 14), 4, (), 'First job'),
-    LifeEvent(date(2018, 1, 20), 7, (), 'Marriage'),
-]
-# Scans +/-60 min at 1-min steps
-result = rectify(birth, time(14, 30), events)
-print(render_rectification(result, birth))
-```
+    birth = BirthInfo(
+        date(1990, 1, 15),
+        time(14, 30),
+        28.6139,
+        77.2090,
+        5.5,
+        "New Delhi",
+    )
+    events = [
+        LifeEvent(date(1995, 9, 3), 2, (), "School admission"),
+        LifeEvent(date(2007, 4, 1), 4, (), "Joined college"),
+        LifeEvent(date(2018, 1, 20), 7, (), "Marriage"),
+    ]
+    result = rectify(birth, time(14, 30), events)
+    print(render_rectification(result, birth))
 
----
+The quality of rectification depends on the accuracy and relevance of the supplied event dates and house mappings. The reported posterior-band interval is a scoring summary, not a statistically calibrated credible interval.
 
-## Citation
+## Calculation conventions
 
-If you use `kpastro` in your research or application, please cite us:
+### Sidereal longitude and ayanamsa
 
-```bibtex
-@software{majumdar2026kpastro,
-  author = {Rituparno Majumdar},
-  title = {kpastro: A Precise Krishnamurti Paddhati (KP) Astrology Engine},
-  year = {2026},
-  url = {https://github.com/Rituparno-Majumdar/kp-astrology},
-  license = {MIT}
-}
-```
+The engine converts tropical longitudes to sidereal longitudes using the configured ayanamsa:
 
-## The mathematics
+    sidereal longitude = tropical longitude - ayanamsa
 
-**Ayanamsa** — the sidereal zodiac is the tropical zodiac minus the ayanamsa:
+The available modes are:
 
-```text
-sidereal longitude = tropical longitude - ayanamsa
-```
+- **lahiri:** Swiss Ephemeris Lahiri/Chitrapaksha; the default.
+- **kp:** the Swiss Ephemeris Krishnamurti VP291 mode.
+- **kp_old:** the Swiss Ephemeris Krishnamurti mode.
+- **kp_new:** a KP VP291-based mode with a code-level zero-point calibration intended to improve agreement with KP Stellar reference output.
 
-The Chitrapaksha (Lahiri) zero point anchors the sidereal origin to the star Spica (Chitra) at 0° Libra. Lahiri and KP modes differ only in the exact reference and precession model used; around **2026 the Lahiri ayanamsa is approximately 24.22°** (the KP/VP291 value is ~24.14°).
+KP-new compatibility adjustments are empirical software conventions, not a claim that the reference application's internal astronomical model is publicly documented. Validate results against the intended reference and epoch before relying on arcsecond-level comparisons.
 
-**Nakshatra** — the zodiac is divided into 27 nakshatras of **13°20' = 800'** each.
+### Nakshatras, sub-lords, and dasha
 
-**Sub-lords** — each nakshatra is split into 9 sub-lords whose spans are proportional to the Vimshottari years:
-
-```text
-sub span (arcmin) = (lord's years / 120) * 800'
-```
-
-The sub-lord sequence starts at the star-lord and cycles through the Vimshottari order; the sub-sub-lord divides the sub again with the same proportions.
-
-**Vimshottari years** — the total cycle is 120 years:
+The sidereal zodiac is divided into 27 nakshatras of 13°20′ each. Each nakshatra is subdivided according to the Vimshottari proportions. The lord chain reports the star-lord, sub-lord, and sub-sub-lord for a longitude. The Vimshottari cycle totals 120 years:
 
 | Planet | Years |
-|--------|-------|
-| Ketu   | 7     |
-| Venus  | 20    |
-| Sun    | 6     |
-| Moon   | 10    |
-| Mars   | 7     |
-| Rahu   | 18    |
-| Jupiter| 16    |
-| Saturn | 19    |
-| Mercury| 17    |
+|---|---:|
+| Ketu | 7 |
+| Venus | 20 |
+| Sun | 6 |
+| Moon | 10 |
+| Mars | 7 |
+| Rahu | 18 |
+| Jupiter | 16 |
+| Saturn | 19 |
+| Mercury | 17 |
 
-**Nakshatra lord mapping** — the star-lord of nakshatra `i` (0-26) is:
+The engine uses 365.25 days per dasha year for its balance and period calculations.
 
-```text
-star_lord(i) = VIMSHOTTARI_ORDER[i % 9]
-```
+### Why the horary system has 249 numbers
 
-so the 9-planet Vimshottari cycle repeats every 9 nakshatras: Ketu, Venus, Sun, Moon, Mars, Rahu, Jupiter, Saturn, Mercury, then repeats.
+The 27 nakshatras times 9 sub-lords produce 243 base subdivisions. Six zodiac sign boundaries fall inside subdivisions and split them into separate sign-specific divisions, giving 249 numbered divisions spanning the zodiac. The sequence is generated by kp_divisions() and is indexed from 1 for the public horary number; Python list indexing for that table is zero-based, so number N is kp_divisions()[N - 1].
 
-**Dasha balance at birth** — anchored to the birth Moon's nakshatra (span `star` = 13°20'), with 1 year = 365.25 days:
+### Ephemeris and precision caveats
 
-```text
-MD_bal  = (star_end   - Moon) / star * Y_star * 365.25   # mahadasha balance
-AD_bal  = (sub_end    - Moon) / star * Y_star * 365.25   # antardasha balance
-PD_bal  = (subsub_end - Moon) / star * Y_star * 365.25   # pratyantar-dasha balance
-```
+Full Swiss Ephemeris data files and the Moshier fallback can produce different results. A mismatch with another application can also originate in ayanamsa conventions, the house-latitude model, time handling, or undocumented reference-software behaviour. For KP Stellar comparison work, use the relevant reference configuration, set SE_EPHE_PATH, choose the intended ayanamsa (often kp_new for this repository's current comparison fixtures), and pin --query-utc when comparing nested dasha periods.
 
-where `star_end` is the end of the Moon's nakshatra, `sub_end` / `subsub_end` the ends of the Moon's sub / sub-sub, and `Y_star` the mahadasha years of the star-lord. Every subsequent sub-period is `Y_parent * Y_child / 120` years.
-
-**Why 249 divisions for horary** — 27 nakshatras × 9 sub-lords = 243 subs. Six of the twelve sign boundaries fall *inside* a sub and split it in two (the sub-lord is unchanged but the sign changes), giving exactly **249 numbered KP divisions** from 0° Aries. A querent's number 1-249 selects division *n*; the horary ascendant is that division's midpoint.
-
-## Accuracy & data files
-
-- **Moshier fallback (default, no downloads)** — planets to about **1 arc-second**, Moon about **0.5"**. More than adequate for KP sub-lord work.
-- **Full Swiss Ephemeris precision** — run `python -m kpastro download-ephemeris` (or `download_ephemeris()`), which places `sepl_18.se1`, `semo_18.se1` and `seas_18.se1` into `~/.kpastro/ephe`. The engine then uses the compressed **VSOP87 / JPL DE431** ephemeris at full precision. The files are also picked up from `SE_EPHE_PATH`.
+The repository contains reconciliation notes and tests for measured differences against its committed KP Stellar reference output. These documents record the tested reference cases; they do not guarantee exact agreement for every date, location, or software version.
 
 ## Project layout
 
-```
-src/kpastro/
-  __init__.py       public API surface + version
-  __main__.py       python -m kpastro entry point
-  constants.py      Vimshottari tables, signs, nakshatras, sign-lords
-  vedic.py          pure-Python KP subdivision math (star / sub / sub-sub)
-  ephemeris.py      Swiss Ephemeris wrapper, ayanamsa, houses, downloads
-  chart.py          BirthInfo, compute_chart, render_chart
-  dasha.py          Vimshottari balances, timelines, sub-periods
-  significators.py  Grah & Bhaav Nirdeshan, ruling planets
-  rectification.py  birth-time rectification (KP "time of birth" method)
-  horary.py         the 249-division KP number system
-  cli.py            argparse CLI (natal / horary / dasha / ayanamsa / ...)
-```
+    src/kpastro/
+      __init__.py       Public API and package version
+      __main__.py       python -m kpastro entry point
+      arithmetic.py     Exact arithmetic helpers for zodiac boundaries
+      chart.py          BirthInfo, compute_chart, chart renderers and JSON schemas
+      cli.py            Command-line interface
+      constants.py      Vimshottari, sign, and nakshatra tables
+      dasha.py          Vimshottari balance and timeline calculations
+      deep_dasha.py     Nested current dasha periods
+      ephemeris.py      Swiss Ephemeris wrapper and data-file downloader
+      horary.py         The 249-division system and horary cusp calculations
+      panchanga.py      Calendar, sunrise/sunset, and panchanga helpers
+      rectification.py  Birth-time rectification and transit scoring
+      significators.py  Planet/house significators and ruling planets
+      vedic.py          KP longitude, star, sub, and sub-sub-lord calculations
 
-## Roadmap
+Other useful repository references:
 
-- [ ] Full dasha view with all 120 sub-periods and transit overlays.
-- [ ] Navamsa and other vargas in the KP scheme.
-- [ ] KP year (KPY) and Saturn-return timing helpers.
-- [ ] CLI subcommand for birth-time rectification.
-- [ ] Western-style event chart export (JSON / CSV).
-- [ ] Optional TinyDB/Pandas output and Jupyter notebooks.
-- [ ] Contribution-driven: more ayanamsa modes, house systems, node options.
+- [KP Stellar differences](KP_STELLAR_DIFF.md)
+- [KP Stellar reconciliation notes](KP_STELLAR_RECONCILIATION.md)
+- [Agent/developer guidance](AGENTS.md)
+- [Horary tests](tests/test_horary.py)
 
-## Contributing
+## Development and tests
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, tests and style. Feedback and pull requests are welcome — file issues at the [issue tracker](https://github.com/Rituparno-Majumdar/kp-astrology/issues).
+Install development dependencies:
 
-## License
+    python -m pip install -e ".[dev]"
 
-MIT — see [LICENSE](LICENSE). Copyright (c) 2026 Rituparno Majumdar.
+Run the test suite:
 
-## Disclaimer
+    python -m pytest
 
-This software is provided for **educational and scientific** purposes only. Astrological interpretations are not scientific predictions, and nothing here should be used to make financial, medical or legal decisions.
+During iteration, run the suite without the configured coverage gate:
+
+    python -m pytest --no-cov
+
+Run the horary tests alone:
+
+    python -m pytest --no-cov tests/test_horary.py
+
+The repository's AGENTS.md documents the known baseline failures and expected-failure reference tests on the checked-in development baseline. Consult it before treating every full-suite failure as a regression or assuming the current baseline is fully green.
+
+## Citation, license, and disclaimer
+
+If you use the engine in research or an application, cite the software and repository version you used. The package metadata credits Rituparno Majumdar.
+
+    @software{kpastro,
+      author = {Rituparno Majumdar},
+      title = {kpastro: A Krishnamurti Paddhati Astrology Engine},
+      year = {2026},
+      url = {https://github.com/llenn-collab/kp-astrology},
+      license = {MIT}
+    }
+
+The project is released under the MIT License; see [LICENSE](LICENSE).
+
+The software is provided for educational and computational purposes. Astrological interpretations are not scientific predictions and should not be used as the sole basis for financial, medical, legal, or other high-impact decisions.
