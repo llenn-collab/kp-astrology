@@ -520,6 +520,20 @@ def _cusp_sublord_houses(chart: Chart) -> dict[str, list[int]]:
     return {k: sorted(v) for k, v in out.items()}
 
 
+#: Conjunction orb (degrees) within which a planet is treated as conjunct a
+#: node and added to that node's agent list.  KP Stellar includes planets
+#: conjunct either node in both nodes' representations (Rahu and Ketu are read
+#: as a pair), which is why V8's KP Stellar reference lists Jupiter for both
+#: Rahu and Ketu -- Jupiter sits 55' from Ketu in Cancer.
+_NODE_CONJUNCTION_ORB_DEG: float = 1.0
+
+
+def _circular_distance(lon1: float, lon2: float) -> float:
+    """Shortest angular distance between two longitudes (degrees, 0-180)."""
+    d = abs(lon1 - lon2) % 360.0
+    return min(d, 360.0 - d)
+
+
 def _node_agency(
     chart: Chart,
     sig_houses: dict[str, list[int]],
@@ -531,14 +545,32 @@ def _node_agency(
     house cusp the node happens to sit in -- those coincide only by accident
     (e.g. Rahu in Aquarius inside a Capricorn 10th), which is why the bug stayed
     invisible for Rahu while corrupting Ketu.
+
+    Planets conjunct either node (within :data:`_NODE_CONJUNCTION_ORB_DEG`) are
+    added as agents to *both* nodes, matching KP Stellar's treatment of the
+    Rahu-Ketu pair.
     """
     nodes: dict[str, dict[str, list]] = {}
+
+    # Planets conjunct either node -- added to both nodes' agent lists.
+    conjunct: list[str] = []
+    for p in chart.planets:
+        if p.name in ("Rahu", "Ketu"):
+            continue
+        for node_name in ("Rahu", "Ketu"):
+            node_planet = next(x for x in chart.planets if x.name == node_name)
+            if _circular_distance(p.longitude, node_planet.longitude) <= _NODE_CONJUNCTION_ORB_DEG:
+                if p.name not in conjunct:
+                    conjunct.append(p.name)
+                break
 
     for node_name in ("Rahu", "Ketu"):
         node_planet = next(p for p in chart.planets if p.name == node_name)
 
         agents = list(
-            dict.fromkeys([node_planet.star_lord, node_planet.sign_lord])
+            dict.fromkeys(
+                [node_planet.star_lord, node_planet.sign_lord] + conjunct
+            )
         )
 
         houses: set[int] = set()
