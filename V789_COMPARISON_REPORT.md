@@ -89,7 +89,7 @@ in KP_STELLAR_RECONCILIATION.md Addendum B.5 as the epoch-drifting ayanamsa wind
 | version | kpastro RAH | KP Stellar RAH | kpastro KET | KP Stellar KET |
 |:--|:--|:--|:--|:--|
 | V7 | MAR, SAT | MAR, SAT | KET, SUN | KET, SUN |
-| V8 | MOO, SAT | MOO, SAT, **JUP** | MER, MOO | MER, MOO, **JUP** |
+| V8 | MOO, SAT, **JUP** | MOO, SAT, **JUP** | MER, MOO, **JUP** | MER, MOO, **JUP** |
 | V9 | MOO, SAT | MOO, SAT | SAT, MOO | SAT, MOO |
 
 **Phase 6 finding:** only V8 differs — KP Stellar includes **Jupiter** in both the
