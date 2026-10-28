@@ -1,0 +1,201 @@
+{
+  "metadata": {
+    "name": "sadasda",
+    "gender": "Male",
+    "date": "Sat Oct 30 2027",
+    "time": "12:00:00",
+    "horary_no": "74 (249)",
+    "place": "Pune, India",
+    "latitude": 18.4593067,
+    "longitude": 73.8654709,
+    "timezone": "Asia/Kolkata",
+    "ayanamsa": "24°09'18\" (KP New)",
+    "node_type": "Using MEAN Node",
+    "sunrise": "06:36:42",
+    "sunset": "17:59:30"
+  },
+  "panchanga": {
+    "nakshatra": "Vishakha (1)",
+    "tithi": "Shukla Prathama",
+    "yoga": "Ayushman",
+    "karana": "Bava",
+    "dasha_balance": "JUP 14y 4m 5d"
+  },
+  "ruling_planets": {
+    "lagna_sgn_stl": "JUP|VEN",
+    "moon_sgn_stl": "VEN|JUP",
+    "day_lord": "SAT",
+    "nodes": ["RAH", "KET"]
+  },
+  "vimsottari_dasha": {
+    "dasa": {"planet": "JUP", "ends": "03/Mar/2042 (22:25:36)"},
+    "bhukti": {"planet": "JUP", "ends": "21/Apr/2028 (03:13:36)"},
+    "antara": {"planet": "MER", "ends": "04/Feb/2027 (14:06:24)"},
+    "sookshma": {"planet": "MER", "ends": "01/Nov/2026 (20:08:29)"},
+    "prana": {"planet": "JUP", "ends": "30/0ct/2026 (08:42:59)"}
+  },
+  "planets": [
+    {
+      "name": "SUN*",
+      "sign": "LIB",
+      "house": 3,
+      "degree": "12°26'54\"",
+      "sgn_stl_sub_ssl": "VEN|RAH|SAT|JUP",
+      "significator": "3, 6, 2 (VI)"
+    },
+    {
+      "name": "MOO",
+      "sign": "LIB",
+      "house": 4,
+      "degree": "21°22'53\"",
+      "sgn_stl_sub_ssl": "VEN|JUP|JUP|MOO",
+      "significator": "2, 4, 6, 9, 1 (IX)"
+    },
+    {
+      "name": "MAR",
+      "sign": "SCO",
+      "house": 5,
+      "degree": "16°08'49\"",
+      "sgn_stl_sub_ssl": "MAR|SAT|JUP|SUN",
+      "significator": "9, 5, 7, 8, 10 (III)"
+    },
+    {
+      "name": "RAH",
+      "sign": "CAP",
+      "house": 6,
+      "degree": "12°40'45\"",
+      "sgn_stl_sub_ssl": "SAT|MOO|RAH|SAT",
+      "significator": "4, 6, 1"
+    },
+    {
+      "name": "JUP",
+      "sign": "LEO",
+      "house": 2,
+      "degree": "25°49'04\"",
+      "sgn_stl_sub_ssl": "SUN|VEN|MER|SAT",
+      "significator": "4, 2, 11, 6, 9 (I, V, VII, XI)"
+    },
+    {
+      "name": "SAT",
+      "sign": "PIS",
+      "house": 9,
+      "degree": "29°17'25\"",
+      "sgn_stl_sub_ssl": "JUP|MER|SAT|MAR",
+      "significator": "3, 9, 12, 7, 8 (VIII)"
+    },
+    {
+      "name": "MER",
+      "sign": "VIR",
+      "house": 3,
+      "degree": "25°24'43\"",
+      "sgn_stl_sub_ssl": "MER|MAR|RAH|VEN",
+      "significator": "5, 3, 10, 12 (II, IV)"
+    },
+    {
+      "name": "KET*",
+      "sign": "CAN",
+      "house": 12,
+      "degree": "12°40'45\"",
+      "sgn_stl_sub_ssl": "MOO|SAT|MAR|VEN",
+      "significator": "12, 9, 7, 8"
+    },
+    {
+      "name": "VEN",
+      "sign": "SCO",
+      "house": 4,
+      "degree": "03°18'06\"",
+      "sgn_stl_sub_ssl": "MAR|JUP|RAH|MAR",
+      "significator": "2, 4, 6, 9, 11 (X, XII)"
+    }
+  ],
+  "nodes_representation": {
+    "RAH": {"houses": [1, 2, 3, 4, 6, 7, 8, 9, 12], "planets": ["MOO", "SAT"]},
+    "KET": {"houses": [1, 2, 3, 4, 6, 7, 8, 9, 12], "planets": ["SAT", "MOO"]}
+  },
+  "cusps": [
+    {
+      "cusp": "Asc",
+      "sign": "CAN",
+      "degree": "14°53'20\"",
+      "sgn_stl_sub_ssl": "MOO|SAT|JUP|JUP",
+      "significator": "[] [] [RAH] [MOO]"
+    },
+    {
+      "cusp": "II",
+      "sign": "LEO",
+      "degree": "11°26'48\"",
+      "sgn_stl_sub_ssl": "SUN|KET|MER|MER",
+      "significator": "[MOO, VEN] [JUP] [] [SUN]"
+    },
+    {
+      "cusp": "III",
+      "sign": "VIR",
+      "degree": "11°20'57\"",
+      "sgn_stl_sub_ssl": "MER|MOO|MAR|JUP",
+      "significator": "[SAT] [SUN, MER] [SAT] [MER]"
+    },
+    {
+      "cusp": "IV",
+      "sign": "LIB",
+      "degree": "13°29'49\"",
+      "sgn_stl_sub_ssl": "VEN|RAH|MER|MOO",
+      "significator": "[RAH, JUP] [MOO, VEN] [JUP] [VEN]"
+    },
+    {
+      "cusp": "V",
+      "sign": "SCO",
+      "degree": "15°21'34\"",
+      "sgn_stl_sub_ssl": "MAR|SAT|JUP|SAT",
+      "significator": "[MER] [MAR] [MER] [MAR]"
+    },
+    {
+      "cusp": "VI",
+      "sign": "SAG",
+      "degree": "15°41'11\"",
+      "sgn_stl_sub_ssl": "JUP|VEN|SUN|RAH",
+      "significator": "[SUN] [RAH] [MOO, VEN] [JUP]"
+    },
+    {
+      "cusp": "VII",
+      "sign": "CAP",
+      "degree": "14°53'20\"",
+      "sgn_stl_sub_ssl": "SAT|MOO|JUP|VEN",
+      "significator": "[] [] [MAR, KET] [SAT]"
+    },
+    {
+      "cusp": "VIII",
+      "sign": "AQU",
+      "degree": "11°26'48\"",
+      "sgn_stl_sub_ssl": "SAT|RAH|SAT|VEN",
+      "significator": "[] [] [MAR, KET] [SAT]"
+    },
+    {
+      "cusp": "IX",
+      "sign": "PIS",
+      "degree": "11°20'57\"",
+      "sgn_stl_sub_ssl": "JUP|SAT|MOO|JUP",
+      "significator": "[MAR, KET] [SAT] [MOO, VEN] [JUP]"
+    },
+    {
+      "cusp": "X",
+      "sign": "ARI",
+      "degree": "13°29'49\"",
+      "sgn_stl_sub_ssl": "MAR|VEN|VEN|VEN",
+      "significator": "[] [] [MER] [MAR]"
+    },
+    {
+      "cusp": "XI",
+      "sign": "TAU",
+      "degree": "15°21'34\"",
+      "sgn_stl_sub_ssl": "VEN|MOO|JUP|MAR",
+      "significator": "[] [] [JUP] [VEN]"
+    },
+    {
+      "cusp": "XII",
+      "sign": "GEM",
+      "degree": "15°41'11\"",
+      "sgn_stl_sub_ssl": "MER|RAH|VEN|SUN",
+      "significator": "[] [KET] [SAT] [MER]"
+    }
+  ]
+}

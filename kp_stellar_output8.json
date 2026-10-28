@@ -1,0 +1,209 @@
+{
+  "notes": "No planet is retrograde.",
+  "birth_details": {
+    "name": "sdgfdesftg df",
+    "gender": "Male",
+    "date": "Fri Apr 30 2027",
+    "time": "12:00:00",
+    "horary_no": "117 (249)",
+    "place": "Pune, India",
+    "latitude": 18.4593067,
+    "longitude": 73.8654709,
+    "timezone": "Asia/Kolkata",
+    "ayanamsa": "24°08'53\" (KP New)",
+    "node_type": "Using MEAN Node",
+    "sunrise": "06:11:58",
+    "sunset": "18:51:53",
+    "nakshatra": "Shravishtha (3)",
+    "tithi": "Krishna Navami",
+    "yoga": "Sukla",
+    "karana": "Garija",
+    "dasha_balance": "MAR 2y 10m 25d"
+  },
+  "vimsottari_dasha": {
+    "dasa": {"planet": "MAR", "ends": "24/Mar/2030 (20:39:02)"},
+    "bhukti": {"planet": "MER", "ends": "20/Sep/2027 (16:36:02)"},
+    "antara": {"planet": "MER", "ends": "13/Nov/2026 (19:09:07)"},
+    "sookshma": {"planet": "RAH", "ends": "29/Oct/2026 (19:57:51)"},
+    "prana": {"planet": "MOO", "ends": "29/Oct/2026 (09:11:18)"}
+  },
+  "ruling_planets": {
+    "lagna": {"sgn": "MOO", "stl": "SAT"},
+    "moon": {"sgn": "SAT", "stl": "MAR"},
+    "day_lord": "VEN",
+    "nodes": ["RAH", "KET"]
+  },
+  "planets": [
+    {
+      "planet": "SUN",
+      "sign": "ARI",
+      "house": 7,
+      "degree": "15°33'18\"",
+      "sgn_stl_sub_ssl": ["MAR", "VEN", "VEN", "KET"],
+      "significators": ["7", "12", "2", "9"]
+    },
+    {
+      "planet": "MOO",
+      "sign": "AQU",
+      "house": 5,
+      "degree": "01°08'31\"",
+      "sgn_stl_sub_ssl": ["SAT", "MAR", "MER", "RAH"],
+      "significators": ["11", "5", "3", "8", "(VI)"]
+    },
+    {
+      "planet": "MAR",
+      "sign": "LEO",
+      "house": 11,
+      "degree": "01°09'08\"",
+      "sgn_stl_sub_ssl": ["SUN", "KET", "VEN", "SUN"],
+      "significators": ["11", "3", "8", "(IV, VIII)"]
+    },
+    {
+      "planet": "RAH",
+      "sign": "CAP",
+      "house": 5,
+      "degree": "22°22'37\"",
+      "sgn_stl_sub_ssl": ["SAT", "MOO", "VEN", "MER"],
+      "significators": ["5", "11", "(XII)"],
+      "node_represents": {
+        "houses": [1, 3, 4, 5, 6, 7, 8, 10, 11],
+        "planets": ["MOO", "SAT", "JUP"]
+      }
+    },
+    {
+      "planet": "JUP",
+      "sign": "CAN",
+      "house": 11,
+      "degree": "23°17'47\"",
+      "sgn_stl_sub_ssl": ["MOO", "MER", "MOO", "SUN"],
+      "significators": ["11", "7", "4", "1", "10"]
+    },
+    {
+      "planet": "SAT",
+      "sign": "PIS",
+      "house": 7,
+      "degree": "26°19'41\"",
+      "sgn_stl_sub_ssl": ["JUP", "MER", "JUP", "JUP"],
+      "significators": ["7", "5", "6", "1", "10", "(IX)"]
+    },
+    {
+      "planet": "MER",
+      "sign": "ARI",
+      "house": 7,
+      "degree": "17°10'41\"",
+      "sgn_stl_sub_ssl": ["MAR", "VEN", "MOO", "VEN"],
+      "significators": ["7", "2", "9", "1", "10", "(I, III, V, VII, XI)"]
+    },
+    {
+      "planet": "KET",
+      "sign": "CAN",
+      "house": 11,
+      "degree": "22°22'37\"",
+      "sgn_stl_sub_ssl": ["MOO", "MER", "MOO", "MAR"],
+      "significators": ["7", "11", "1", "10"],
+      "node_represents": {
+        "houses": [1, 2, 3, 4, 5, 7, 8, 9, 10, 11],
+        "planets": ["MER", "MOO", "JUP"]
+      }
+    },
+    {
+      "planet": "VEN",
+      "sign": "PIS",
+      "house": 7,
+      "degree": "18°06'22\"",
+      "sgn_stl_sub_ssl": ["JUP", "MER", "MER", "JUP"],
+      "significators": ["7", "1", "10", "2", "9", "(II, X)"]
+    }
+  ],
+  "cusps": [
+    {
+      "cusp": "Asc",
+      "sign": "VIR",
+      "degree": "17°46'40\"",
+      "sgn_stl_sub_ssl": ["MER", "MOO", "MER", "MER"],
+      "significators": {"A": [], "B": [], "C": ["VEN", "JUP", "SAT", "KET"], "D": ["MER"]}
+    },
+    {
+      "cusp": "II",
+      "sign": "LIB",
+      "degree": "17°21'11\"",
+      "sgn_stl_sub_ssl": ["VEN", "RAH", "VEN", "KET"],
+      "significators": {"A": [], "B": [], "C": ["SUN", "MER"], "D": ["VEN"]}
+    },
+    {
+      "cusp": "III",
+      "sign": "SCO",
+      "degree": "17°20'09\"",
+      "sgn_stl_sub_ssl": ["MAR", "MER", "MER", "VEN"],
+      "significators": {"A": [], "B": [], "C": ["MOO"], "D": ["MAR"]}
+    },
+    {
+      "cusp": "IV",
+      "sign": "SAG",
+      "degree": "17°22'49\"",
+      "sgn_stl_sub_ssl": ["JUP", "VEN", "MAR", "RAH"],
+      "significators": {"A": [], "B": [], "C": [], "D": ["JUP"]}
+    },
+    {
+      "cusp": "V",
+      "sign": "CAP",
+      "degree": "17°53'08\"",
+      "sgn_stl_sub_ssl": ["SAT", "MOO", "MER", "MER"],
+      "significators": {"A": ["RAH"], "B": ["MOO", "RAH"], "C": [], "D": ["SAT"]}
+    },
+    {
+      "cusp": "VI",
+      "sign": "AQU",
+      "degree": "18°32'35\"",
+      "sgn_stl_sub_ssl": ["SAT", "RAH", "MOO", "JUP"],
+      "significators": {"A": [], "B": [], "C": [], "D": ["SAT"]}
+    },
+    {
+      "cusp": "VII",
+      "sign": "PIS",
+      "degree": "17°46'40\"",
+      "sgn_stl_sub_ssl": ["JUP", "MER", "MER", "RAH"],
+      "significators": {
+        "A": ["VEN", "JUP", "SAT", "KET", "SUN", "MER"],
+        "B": ["SUN", "MER", "VEN", "SAT"],
+        "C": [],
+        "D": ["JUP"]
+      }
+    },
+    {
+      "cusp": "VIII",
+      "sign": "ARI",
+      "degree": "17°21'11\"",
+      "sgn_stl_sub_ssl": ["MAR", "VEN", "MAR", "MAR"],
+      "significators": {"A": [], "B": [], "C": ["MOO"], "D": ["MAR"]}
+    },
+    {
+      "cusp": "IX",
+      "sign": "TAU",
+      "degree": "17°20'09\"",
+      "sgn_stl_sub_ssl": ["VEN", "MOO", "SAT", "RAH"],
+      "significators": {"A": [], "B": [], "C": ["SUN", "MER"], "D": ["VEN"]}
+    },
+    {
+      "cusp": "X",
+      "sign": "GEM",
+      "degree": "17°22'49\"",
+      "sgn_stl_sub_ssl": ["MER", "RAH", "VEN", "KET"],
+      "significators": {"A": [], "B": [], "C": ["VEN", "JUP", "SAT", "KET"], "D": ["MER"]}
+    },
+    {
+      "cusp": "XI",
+      "sign": "CAN",
+      "degree": "17°53'08\"",
+      "sgn_stl_sub_ssl": ["MOO", "MER", "MER", "RAH"],
+      "significators": {"A": ["MOO", "MAR"], "B": ["MAR", "JUP", "KET"], "C": ["RAH"], "D": ["MOO"]}
+    },
+    {
+      "cusp": "XII",
+      "sign": "LEO",
+      "degree": "18°32'35\"",
+      "sgn_stl_sub_ssl": ["SUN", "VEN", "RAH", "JUP"],
+      "significators": {"A": [], "B": [], "C": [], "D": ["SUN"]}
+    }
+  ]
+}
