@@ -1,11 +1,11 @@
 {
     "schema_version": 2,
-    "commit": "8ed61a2610e954cc94392f4b35b9cf339937b04b",
-    "indexed_at": "2026-10-28T17:45:03Z",
+    "commit": "ea12aa7a7a6faffc076ed6eb6a844608e66d0f1a",
+    "indexed_at": "2026-10-28T17:51:07Z",
     "project": "Users-llenn-Documents-GitHub-kp-astrology",
-    "nodes": 468,
-    "edges": 2000,
+    "nodes": 478,
+    "edges": 2022,
     "original_size": 6160384,
-    "compressed_size": 1140974,
+    "compressed_size": 1137427,
     "compression_level": 3
 }
