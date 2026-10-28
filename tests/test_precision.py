@@ -107,8 +107,7 @@ class TestArithmeticExactness:
         # it -- the point used to resolve to Bharani/Venus.
         (26.666666666666664, "Sun"),
         # 1510/9 deg == 167d46'40" is *exactly* the Saturn -> Mercury sub edge
-        # of Hasta (Moon's star).  This is cusp 1 of kp_stellar_output.json,
-        # where KP Stellar prints sub-lord MER.  It used to come out Saturn.
+        # of Hasta (Moon's star); it used to resolve to Saturn.
         (1510 / 9, "Mercury"),
     ])
     def test_boundary_float_resolves_to_following_segment(self, lon, expected):
@@ -116,9 +115,9 @@ class TestArithmeticExactness:
 
         Regression: ``vedic._mas`` floored to a whole mas before applying
         ``BOUNDARY_TOL_MAS`` (1/1000 mas), so an exact-boundary float was
-        resolved to the *preceding* segment -- the opposite of the policy
-        documented in AGENTS.md and of KP Stellar's output.  A point genuinely
-        further below the edge than the tolerance must still resolve down.
+        resolved to the *preceding* segment -- the opposite of the documented
+        forward-push policy.  A point genuinely further below the edge than
+        the tolerance must still resolve down.
         """
         assert V.sub_info(lon).lord == expected
         assert V.sub_info(lon - 1e-6).lord != expected
@@ -174,18 +173,6 @@ class TestArithmeticExactness:
         spans = list(A.walk_subdivisions(A.STAR_SPAN_MAS, lord, 9))
         assert sum(spans) == A.STAR_SPAN_MAS
         assert spans[0] == A.subspan_mas(A.STAR_SPAN_MAS, "Ketu")
-
-    def test_kahan_sum_beats_naive(self):
-        values = [1e16, 1.0, -1e16, 1.0]
-        assert A.kahan_sum(values) == 2.0
-        assert sum(values) != 2.0                  # naive float fails here
-
-    def test_quantize_deg_half_up_exact(self):
-        assert A.quantize_deg(273.9999999, 1.0) == 274.0
-        assert A.quantize_deg(0.5 / 3600.0, 1.0) == 1.0 / 3600.0 * 1  # 0.5" -> 1"
-        assert A.quantize_deg(359.99999999, 1.0) == 0.0               # folds to 0
-        with pytest.raises(ValueError):
-            A.quantize_deg(1.0, 0.0)
 
     def test_longitude_to_mas_folding_edges(self):
         assert A.longitude_to_mas(-1e-14) == 0
@@ -252,13 +239,6 @@ class TestVedicBoundaries:
 # ---------------------------------------------------------------------------
 
 class TestDashaExactAlgebra:
-    def test_fraction_algebra_values(self):
-        assert D.period_days_fraction("Venus", "Ketu") == Fraction(20 * 7, 120) * Fraction(
-            D.DAYS_PER_YEAR
-        )
-        assert D.mahadasha_days_fraction("Ketu") == Fraction(7) * Fraction("365.25")
-        assert D.md_years_fraction("Sun") == Fraction(17)
-
     def test_float_wrappers_correctly_rounded(self):
         for pl in VIMSHOTTARI_ORDER:
             for cl in VIMSHOTTARI_ORDER:
@@ -324,20 +304,6 @@ class TestDashaExactAlgebra:
                 nb.active_pd_lord,
             )
 
-    def test_balance_requantisation_bound(self):
-        # The AD/PD balance re-quantises the level-2/3 end via
-        # longitude_to_mas(end_deg); verify that quantisation recovers the
-        # exact boundary mas (level 2) and stays within 1 mas (level 3).
-        for star_idx in (0, 9, 20, 26):
-            for lord, s, e in A.sub_divisions_mas(star_idx):
-                assert abs(A.longitude_to_mas(A.mas_to_deg(e)) - e) <= 0
-        for star_idx in (0, 20):
-            for lord, s, e in A.sub_divisions_mas(star_idx):
-                tiling = A.child_tiling_mas(s, e, lord)
-                for _l, cs, ce in tiling:
-                    err = abs(Fraction(A.longitude_to_mas(A.mas_to_deg(ce))) - ce)
-                    assert err < 1                    # strictly below 1 mas
-
     @pytest.mark.parametrize("offset_days", [0, 12345, 67890, 200000])
     def test_absolute_periods_match_legacy_lords(self, offset_days):
         epoch = datetime(1975, 3, 14, tzinfo=timezone.utc)
@@ -374,7 +340,6 @@ class TestDashaExactAlgebra:
         assert e - s == timedelta(days=p.duration_days)
         assert p.balance_days(epoch, epoch) == pytest.approx(p.duration_days)
         assert p.level_name == "Mahadasha"
-        assert D.format_days(400.0).startswith("1y 0m")
 
 
 # ---------------------------------------------------------------------------

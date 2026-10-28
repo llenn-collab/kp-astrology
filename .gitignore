@@ -3,9 +3,20 @@ __pycache__/
 *.pyc
 
 # Distribution / packaging artifacts
-src/*.egg-info/
+*.egg-info/
 dist/
 build/
 
 # Testing and coverage
 .coverage
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+
+# OS / editor junk
+.DS_Store
+
+# Local tooling
+.codebase-memory/

@@ -1,18 +1,16 @@
-"""§2.E signified-list ordering: all 9 planet rows and all 48 cusp tiers.
+"""Signified-list ordering: all 9 planet rows and all 48 cusp tiers.
 
-The accepted rule (stated and measured in ``diagnositics/findings_signifies.md``
-before it was implemented) is:
+The pinned ordering rule is:
 
 * a planet **no planet sits in the star of** (its own star included) --
-  KP Stellar's ``*`` flag -- emits its ``signifies`` groups with each pair flipped (own house
-  before the star-lord's house, own signs before the star-lord's signs);
+  the ``*`` flag -- emits its ``signifies`` groups with each pair flipped (own
+  house before the star-lord's house, own signs before the star-lord's signs);
 * every ``signifies_A_B_C_D`` tier sorts ``*``-flagged planets first, then
   the rest in KP planet-table order.
 
-The expectations below are the reference values from ``kp_stellar_output.json``
-hard-coded in this test (allowed: tests, unlike ``src/``, may name the
-reference).  The chart is the pinned one: 2026-10-30 12:00 IST Pune,
-ayanamsa kp_new, mean node, horary number 117, query 2026-10-18 12:00 UTC.
+The expectations below are hard-coded reference values.  The chart is the
+pinned one: 2026-10-30 12:00 IST Pune, ayanamsa kp_new, mean node, horary
+number 117, query 2026-10-18 12:00 UTC.
 """
 
 from __future__ import annotations

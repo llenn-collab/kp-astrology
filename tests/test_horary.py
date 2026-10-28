@@ -1,10 +1,8 @@
 """Tests for the KP horary layer: the 249-division table and the house frame
 that is cast from a division's cusp.
 
-The division table itself is exercised through ``kp_stellar_output.json`` in
-``test_kp_stellar_reference.py``; this module covers
-:func:`kpastro.horary.cusps_from_horary_lagna`, which turns a horary ascendant
-into the twelve Placidus cusps that belong to it.
+This module covers :func:`kpastro.horary.cusps_from_horary_lagna`, which turns
+a horary ascendant into the twelve Placidus cusps that belong to it.
 """
 
 from __future__ import annotations
