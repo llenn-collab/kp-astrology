@@ -1,0 +1,524 @@
+{
+  "horary_details": {
+    "name": "KPstellaroutput3",
+    "gender": "Male",
+    "date": "Fri Nov 05 2027",
+    "time": "07:25:00",
+    "horary_no": "198 (249)",
+    "place": "Bengaluru, India",
+    "latitude": 12.9716,
+    "longitude": 77.5946,
+    "timezone": "Asia/Kolkata",
+    "ayanamsa": "24°09'19\" (KP New)",
+    "node": "Using MEAN Node",
+    "sunrise": "06:17:48",
+    "sunset": "17:48:26",
+    "nakshatra": "Uttara Ashadha (3)",
+    "tithi": "Shukla Saptami",
+    "yoga": "Shoola",
+    "karana": "Gara",
+    "dasha_balance": "SUN 2y 4m 19d"
+  },
+  "vimsottari_dasa": {
+    "dasa": {
+      "lord": "SUN",
+      "end": "24/Mar/2030 19:07:03"
+    },
+    "bhukti": {
+      "lord": "SAT",
+      "end": "11/Jan/2028 05:55:03"
+    },
+    "antara": {
+      "lord": "RAH",
+      "end": "25/Nov/2027 23:33:27"
+    },
+    "sookshma": {
+      "lord": "KET",
+      "end": "07/Nov/2027 07:56:37"
+    },
+    "prana": {
+      "lord": "MOO",
+      "end": "05/Nov/2027 09:11:13"
+    }
+  },
+  "ruling_planets": {
+    "lagna": {
+      "sign": "MAR",
+      "stl": "SAT"
+    },
+    "moon": {
+      "sign": "SAT",
+      "stl": "SUN"
+    },
+    "day_lord": "VEN",
+    "nodes": null
+  },
+  "planets": {
+    "SUN": {
+      "sign": "LIB",
+      "house": 9,
+      "degree": "18°15'43\"",
+      "sg": "VEN",
+      "sl": "RAH",
+      "sb": "MOO",
+      "ss": "MAR",
+      "signifies": [
+        "12",
+        "9",
+        "8",
+        "(XII)"
+      ],
+      "flags": []
+    },
+    "MOO": {
+      "sign": "CAP",
+      "house": 12,
+      "degree": "04°42'13\"",
+      "sg": "SAT",
+      "sl": "SUN",
+      "sb": "SAT",
+      "ss": "RAH",
+      "signifies": [
+        "9",
+        "12",
+        "8",
+        "7",
+        "(II, III)"
+      ],
+      "flags": []
+    },
+    "MAR": {
+      "sign": "SCO",
+      "house": 11,
+      "degree": "20°24'02\"",
+      "sg": "MAR",
+      "sl": "MER",
+      "sb": "VEN",
+      "ss": "RAH",
+      "signifies": [
+        "9",
+        "11",
+        "6",
+        "4"
+      ],
+      "flags": []
+    },
+    "RAH": {
+      "sign": "CAP",
+      "house": 12,
+      "degree": "12°22'17\"",
+      "sg": "SAT",
+      "sl": "MOO",
+      "sb": "RAH",
+      "ss": "JUP",
+      "signifies": [
+        "12",
+        "7",
+        "(VII, VIII)"
+      ],
+      "flags": []
+    },
+    "JUP": {
+      "sign": "LEO",
+      "house": 8,
+      "degree": "26°49'57\"",
+      "sg": "SUN",
+      "sl": "SUN",
+      "sb": "SUN",
+      "ss": "RAH",
+      "signifies": [
+        "8",
+        "9",
+        "3",
+        "12",
+        "(I)"
+      ],
+      "flags": [
+        "*"
+      ]
+    },
+    "SAT": {
+      "sign": "PIS",
+      "house": 3,
+      "degree": "28°51'24\"",
+      "sg": "JUP",
+      "sl": "MER",
+      "sb": "SAT",
+      "ss": "VEN",
+      "signifies": [
+        "9",
+        "3",
+        "6",
+        "1",
+        "2",
+        "(IV, X)"
+      ],
+      "flags": [
+        "R"
+      ]
+    },
+    "MER": {
+      "sign": "VIR",
+      "house": 9,
+      "degree": "29°38'44\"",
+      "sg": "MER",
+      "sl": "MAR",
+      "sb": "SAT",
+      "ss": "RAH",
+      "signifies": [
+        "11",
+        "9",
+        "4",
+        "6"
+      ],
+      "flags": []
+    },
+    "KET": {
+      "sign": "CAN",
+      "house": 6,
+      "degree": "12°22'17\"",
+      "sg": "MOO",
+      "sl": "SAT",
+      "sb": "MAR",
+      "ss": "JUP",
+      "signifies": [
+        "6",
+        "3",
+        "1",
+        "2",
+        "(V)"
+      ],
+      "flags": [
+        "*"
+      ]
+    },
+    "VEN": {
+      "sign": "SCO",
+      "house": 10,
+      "degree": "10°30'55\"",
+      "sg": "MAR",
+      "sl": "SAT",
+      "sb": "SUN",
+      "ss": "RAH",
+      "signifies": [
+        "10",
+        "3",
+        "5",
+        "1",
+        "2",
+        "(VI, IX, XI)"
+      ],
+      "flags": [
+        "*"
+      ]
+    }
+  },
+  "cusps": {
+    "1": {
+      "name": "Asc",
+      "sign": "CAP",
+      "degree": "13°53'20\"",
+      "sg": "SAT",
+      "sl": "MOO",
+      "sb": "JUP",
+      "ss": "JUP",
+      "signifies_A_B_C_D": [
+        [],
+        [],
+        [
+          "KET",
+          "VEN"
+        ],
+        [
+          "SAT"
+        ]
+      ]
+    },
+    "2": {
+      "name": "II",
+      "sign": "AQU",
+      "degree": "18°11'45\"",
+      "sg": "SAT",
+      "sl": "RAH",
+      "sb": "MOO",
+      "ss": "MOO",
+      "signifies_A_B_C_D": [
+        [],
+        [],
+        [
+          "KET",
+          "VEN"
+        ],
+        [
+          "SAT"
+        ]
+      ]
+    },
+    "3": {
+      "name": "III",
+      "sign": "PIS",
+      "degree": "22°26'06\"",
+      "sg": "JUP",
+      "sl": "MER",
+      "sb": "MOO",
+      "ss": "RAH",
+      "signifies_A_B_C_D": [
+        [
+          "KET",
+          "VEN"
+        ],
+        [
+          "SAT"
+        ],
+        [],
+        [
+          "JUP"
+        ]
+      ]
+    },
+    "4": {
+      "name": "IV",
+      "sign": "ARI",
+      "degree": "23°05'52\"",
+      "sg": "MAR",
+      "sl": "VEN",
+      "sb": "SAT",
+      "ss": "SUN",
+      "signifies_A_B_C_D": [
+        [],
+        [],
+        [
+          "MER"
+        ],
+        [
+          "MAR"
+        ]
+      ]
+    },
+    "5": {
+      "name": "V",
+      "sign": "TAU",
+      "degree": "20°09'07\"",
+      "sg": "VEN",
+      "sl": "MOO",
+      "sb": "KET",
+      "ss": "JUP",
+      "signifies_A_B_C_D": [
+        [],
+        [],
+        [],
+        [
+          "VEN"
+        ]
+      ]
+    },
+    "6": {
+      "name": "VI",
+      "sign": "GEM",
+      "degree": "16°00'58\"",
+      "sg": "MER",
+      "sl": "RAH",
+      "sb": "VEN",
+      "ss": "MAR",
+      "signifies_A_B_C_D": [
+        [],
+        [
+          "KET"
+        ],
+        [
+          "MAR",
+          "SAT"
+        ],
+        [
+          "MER"
+        ]
+      ]
+    },
+    "7": {
+      "name": "VII",
+      "sign": "CAN",
+      "degree": "13°53'20\"",
+      "sg": "MOO",
+      "sl": "SAT",
+      "sb": "RAH",
+      "ss": "MER",
+      "signifies_A_B_C_D": [
+        [],
+        [],
+        [
+          "RAH"
+        ],
+        [
+          "MOO"
+        ]
+      ]
+    },
+    "8": {
+      "name": "VIII",
+      "sign": "LEO",
+      "degree": "18°11'45\"",
+      "sg": "SUN",
+      "sl": "VEN",
+      "sb": "RAH",
+      "ss": "RAH",
+      "signifies_A_B_C_D": [
+        [],
+        [
+          "JUP"
+        ],
+        [
+          "JUP",
+          "MOO"
+        ],
+        [
+          "SUN"
+        ]
+      ]
+    },
+    "9": {
+      "name": "IX",
+      "sign": "VIR",
+      "degree": "22°26'06\"",
+      "sg": "MER",
+      "sl": "MOO",
+      "sb": "VEN",
+      "ss": "MER",
+      "signifies_A_B_C_D": [
+        [
+          "JUP",
+          "MOO",
+          "MAR",
+          "SAT"
+        ],
+        [
+          "SUN",
+          "MER"
+        ],
+        [
+          "MAR",
+          "SAT"
+        ],
+        [
+          "MER"
+        ]
+      ]
+    },
+    "10": {
+      "name": "X",
+      "sign": "LIB",
+      "degree": "23°05'52\"",
+      "sg": "VEN",
+      "sl": "JUP",
+      "sb": "SAT",
+      "ss": "MOO",
+      "signifies_A_B_C_D": [
+        [],
+        [
+          "VEN"
+        ],
+        [],
+        [
+          "VEN"
+        ]
+      ]
+    },
+    "11": {
+      "name": "XI",
+      "sign": "SCO",
+      "degree": "20°09'07\"",
+      "sg": "MAR",
+      "sl": "MER",
+      "sb": "VEN",
+      "ss": "RAH",
+      "signifies_A_B_C_D": [
+        [
+          "MER"
+        ],
+        [
+          "MAR"
+        ],
+        [
+          "MER"
+        ],
+        [
+          "MAR"
+        ]
+      ]
+    },
+    "12": {
+      "name": "XII",
+      "sign": "SAG",
+      "degree": "16°00'58\"",
+      "sg": "JUP",
+      "sl": "VEN",
+      "sb": "SUN",
+      "ss": "MER",
+      "signifies_A_B_C_D": [
+        [
+          "SUN",
+          "RAH"
+        ],
+        [
+          "MOO",
+          "RAH"
+        ],
+        [],
+        [
+          "JUP"
+        ]
+      ]
+    }
+  },
+  "nodes_representation": {
+    "RAH": {
+      "houses": [
+        1,
+        2,
+        3,
+        6,
+        7,
+        8,
+        9,
+        12
+      ],
+      "planets": [
+        "MOO",
+        "SAT"
+      ]
+    },
+    "KET": {
+      "houses": [
+        1,
+        2,
+        3,
+        6,
+        7,
+        8,
+        9,
+        12
+      ],
+      "planets": [
+        "SAT",
+        "MOO"
+      ]
+    }
+  },
+  "legend": {
+    "sg": "Sign",
+    "sl": "Star Lord",
+    "sb": "Sub Lord",
+    "ss": "Sub Sub Lord",
+    "flags": {
+      "R": "Retrograde",
+      "#": "Planet in self star",
+      "*": "Has no planet in its star"
+    },
+    "signifies_A_B_C_D": [
+      "A: Planets in star of planets in house",
+      "B: Planet in the house",
+      "C: Planet in star of house-lord",
+      "D: Sign-lord"
+    ]
+  },
+  "index": 3
+}
